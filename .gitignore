@@ -1,12 +1,32 @@
-@"
 # Keil 编译中间文件
 list/
 output/
+*.crf
+*.d
+*.o
+*.axf
+*.elf
+*.sct
+*.lnp
+*.dep
+*.bak
 
 # Keil GUI 配置文件
-*.uvgui.*
+*.uvgui*
+*.uvoptx
 *.uvopt
+*.uvproj.bak
 
 # 系统文件
 Thumbs.db
-"@ | Out-File -Encoding utf8 .gitignore
+.DS_Store
+
+# 其他临时文件
+*.log
+*.htm
+*.lst
+*.map
+*.build_log.htm
+*.cfg
+*.__i
+*.SBR
