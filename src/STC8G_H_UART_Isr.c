@@ -12,6 +12,8 @@
 
 #include "STC8G_H_UART.h"
 
+extern volatile u16 uart_rx_timeout_cnt;
+
 //========================================================================
 // 函数: UART1_ISR_Handler
 // 描述: UART1中断函数.
@@ -22,30 +24,49 @@
 #ifdef UART1
 void UART1_ISR_Handler (void) interrupt UART1_VECTOR
 {
-	if(RI)
-	{
-		RI = 0;
+    u8 rx_data;   // 用于暂存接收数据
+    
+    if(RI)
+    {
+        RI = 0;
+        
+        // ★ 新增：读取数据到临时变量，用于超时重置
+        rx_data = SBUF;
 
-        if(COM1.RX_Cnt >= COM_RX1_Lenth)	COM1.RX_Cnt = 0;
-        RX1_Buffer[COM1.RX_Cnt++] = SBUF;
+        // 接收缓冲区溢出保护
+        if(COM1.RX_Cnt >= COM_RX1_Lenth) {
+            COM1.RX_Cnt = 0;
+        }
+        
+        // 存入缓冲区
+        RX1_Buffer[COM1.RX_Cnt++] = rx_data;
+        
+        // ★ 新增：每收到一个字节，重置超时计数器为0
+        uart_rx_timeout_cnt = 0;   // 注意：这个变量需要在外部声明为全局变量
+        
+        // 原有的超时变量（如果其他地方用到了就保留，没用到可以忽略）
         COM1.RX_TimeOut = TimeOutSet1;
-	}
+    }
 
-	if(TI)
-	{
-		TI = 0;
-		
-        #if(UART_QUEUE_MODE == 1)   //判断是否使用队列模式
-		if(COM1.TX_send != COM1.TX_write)
-		{
-		 	SBUF = TX1_Buffer[COM1.TX_send];
-			if(++COM1.TX_send >= COM_TX1_Lenth)		COM1.TX_send = 0;
-		}
-		else	COM1.B_TX_busy = 0;
-        #else
-        COM1.B_TX_busy = 0;     //使用阻塞方式发送直接清除繁忙标志
+    if(TI)
+    {
+        TI = 0;
+        
+        #if(UART_QUEUE_MODE == 1)   // 队列模式
+        if(COM1.TX_send != COM1.TX_write)
+        {
+            SBUF = TX1_Buffer[COM1.TX_send];
+            if(++COM1.TX_send >= COM_TX1_Lenth) {
+                COM1.TX_send = 0;
+            }
+        }
+        else {
+            COM1.B_TX_busy = 0;
+        }
+        #else   // 阻塞模式
+        COM1.B_TX_busy = 0;
         #endif
-	}
+    }
 }
 #endif
 

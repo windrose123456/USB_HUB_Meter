@@ -393,6 +393,16 @@
               <FileType>1</FileType>
               <FilePath>.\src\STC8G_H_UART_Isr.c</FilePath>
             </File>
+            <File>
+              <FileName>STC8G_H_Timer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\STC8G_H_Timer.c</FilePath>
+            </File>
+            <File>
+              <FileName>STC8G_H_Timer_Isr.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\STC8G_H_Timer_Isr.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -437,6 +447,11 @@
               <FileName>..\..\STC\project\USB_HUB_Meter\inc\Type_def.h</FileName>
               <FileType>5</FileType>
               <FilePath>$TC_ROOT$\..\..\STC\project\USB_HUB_Meter\inc\Type_def.h</FilePath>
+            </File>
+            <File>
+              <FileName>STC8G_H_Timer.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\inc\STC8G_H_Timer.h</FilePath>
             </File>
           </Files>
         </Group>
