@@ -1,0 +1,12 @@
+@"
+# Keil 编译中间文件
+list/
+output/
+
+# Keil GUI 配置文件
+*.uvgui.*
+*.uvopt
+
+# 系统文件
+Thumbs.db
+"@ | Out-File -Encoding utf8 .gitignore
