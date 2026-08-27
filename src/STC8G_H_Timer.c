@@ -14,6 +14,8 @@
 
 volatile u16 SysTick_10us = 0;   // 10us递增计数器
 volatile u16 SysTick_1ms = 0;    // 1ms递增计数器
+volatile bit uart_rx_timeout_flag = 0;
+volatile u16 timer0_reload_val = 0;
 
 //========================================================================
 // 函数: u8	Timer_Inilize(u8 TIM, TIM_InitTypeDef *TIMx)
@@ -110,8 +112,44 @@ void Timer0_10us_Config(void)
     
     Timer_Inilize(Timer0, &TIM_InitStructure);
     
-//    ET0 = 1;    // 使能定时器0中断
+    ET0 = 1;    // 使能定时器0中断
 }
+
+////========================================================================
+//// 函数: void Timer0_Start(void)
+//// 描述: 启动定时器0
+//// 参数: none
+//// 返回: none
+////========================================================================
+//void Timer0_Start(void)
+//{
+//    TR0 = 1;        // 启动定时器0
+//    ET0 = 1;        // 使能定时器0中断
+//}
+
+////========================================================================
+//// 函数: void Timer0_Stop(void)
+//// 描述: 停止定时器0
+//// 参数: none
+//// 返回: none
+////========================================================================
+//void Timer0_Stop(void)
+//{
+//    TR0 = 0;        // 停止定时器0
+//    ET0 = 0;        // 关闭定时器0中断
+//}
+
+////========================================================================
+//// 函数: void Timer0_Reset(void)
+//// 描述: 定时器0计数值置0（重装初值）
+//// 参数: none
+//// 返回: none
+////========================================================================
+//void Timer0_Reset(void)
+//{
+//    TH0 = 0;
+//    TL0 = 0;
+//}
 
 //========================================================================
 // 函数: u16 UART_Get_3_5CharTime_10us(u32 baudrate)
@@ -135,4 +173,21 @@ u16 UART_Get_3_5CharTime_10us(u32 baudrate)
     
     // 返回u16范围
     return (u16)cnt_10us;
+}
+
+void UART_Timeout_Timer0_Config(u32 baudrate)
+{
+    // 3.5字符时间的timer ticks = 3.5 × 11bits × MAIN_Fosc / baudrate
+    // = 38.5 × MAIN_Fosc / baudrate
+    // 为避免浮点，用 385 × MAIN_Fosc / (baudrate × 10)
+    u32 timer_ticks = (385UL * MAIN_Fosc) / (baudrate * 10UL);
+    timer0_reload_val = 65536UL - (u16)timer_ticks;
+    
+    Timer0_Stop();
+    TMOD = (TMOD & ~0x03) | 0x01;  // ★ Mode 1: 16位非自动重装
+    Timer0_CLK_Select(1);           // 1T模式
+    Timer0_CLK_Output(DISABLE);
+    T0_Load(timer0_reload_val);
+    ET0 = 1;                        // 使能Timer0中断
+    TR0 = 0;                        // 先不启动
 }

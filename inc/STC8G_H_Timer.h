@@ -153,5 +153,7 @@ extern volatile u16 SysTick_1ms;    // 1ms计数器
 // 计算3.5字符时间（以10us为单位，向上取整）
 u16 UART_Get_3_5CharTime_10us(u32 baudrate);
 void Timer0_10us_Config(void);
+void UART_Timeout_Timer0_Config(u32 baudrate);
+extern volatile bit uart_rx_timeout_flag;
 
 #endif

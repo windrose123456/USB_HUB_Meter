@@ -11,8 +11,10 @@
 /*---------------------------------------------------------------------*/
 
 #include "STC8G_H_UART.h"
+#include "STC8G_H_Timer.h"
 
-extern volatile u16 uart_rx_timeout_cnt;
+//extern volatile u16 uart_rx_timeout_cnt;
+extern volatile u16 timer0_reload_val;
 
 //========================================================================
 // 函数: UART1_ISR_Handler
@@ -29,8 +31,6 @@ void UART1_ISR_Handler (void) interrupt UART1_VECTOR
     if(RI)
     {
         RI = 0;
-        
-        // ★ 新增：读取数据到临时变量，用于超时重置
         rx_data = SBUF;
 
         // 接收缓冲区溢出保护
@@ -41,11 +41,9 @@ void UART1_ISR_Handler (void) interrupt UART1_VECTOR
         // 存入缓冲区
         RX1_Buffer[COM1.RX_Cnt++] = rx_data;
         
-        // ★ 新增：每收到一个字节，重置超时计数器为0
-        uart_rx_timeout_cnt = 0;   // 注意：这个变量需要在外部声明为全局变量
-        
-        // 原有的超时变量（如果其他地方用到了就保留，没用到可以忽略）
-        COM1.RX_TimeOut = TimeOutSet1;
+        // 重装Timer0，重启超时计时
+		T0_Load(timer0_reload_val);
+		TR0 = 1;
     }
 
     if(TI)

@@ -46,13 +46,13 @@ void	GPIO_config(void)
 	//GPIO_Inilize(GPIO_P3,&GPIO_InitStructure);	//初始化
 	
 	//GPIO_InitStructure.Pin  = GPIO_Pin_0 | GPIO_Pin_1;
-	GPIO_InitStructure.Pin  = GPIO_Pin_0 | GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3;
-	GPIO_InitStructure.Mode = GPIO_PullUp;
-	GPIO_Inilize(GPIO_P3,&GPIO_InitStructure);
-	
 	GPIO_InitStructure.Pin  = GPIO_Pin_5;
-	GPIO_InitStructure.Mode = GPIO_HighZ;
+	GPIO_InitStructure.Mode = GPIO_OUT_PP;
 	GPIO_Inilize(GPIO_P5,&GPIO_InitStructure);
+	
+//	GPIO_InitStructure.Pin  = GPIO_Pin_5;
+//	GPIO_InitStructure.Mode = GPIO_HighZ;
+//	GPIO_Inilize(GPIO_P5,&GPIO_InitStructure);
 	
 	//将RST作为模式选择引脚，上电瞬间会有6.5ms高电平
 	GPIO_InitStructure.Pin  = GPIO_Pin_4;
@@ -73,7 +73,7 @@ void	UART_config(void)
 	
 	COMx_InitStructure.UART_Mode      = UART_8bit_BRTx;	//模式, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,UART_9bit_BRTx
 	COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;			//选择波特率发生器, BRT_Timer1, BRT_Timer2 (注意: 串口2固定使用BRT_Timer2)
-	COMx_InitStructure.UART_BaudRate  = 115200ul;			//波特率, 一般 110 ~ 115200
+	COMx_InitStructure.UART_BaudRate  = 115200ul;			//波特率, 在本代码中，因定时器16位，波特率能设置到2400~115200
 	COMx_InitStructure.UART_RxEnable  = ENABLE;				//接收允许,   ENABLE或DISABLE
 	COMx_InitStructure.BaudRateDouble = DISABLE;			//波特率加倍, ENABLE或DISABLE
 	
@@ -93,7 +93,8 @@ void	UART_config(void)
 //========================================================================
 void TIMER_Config(void)
 {
-    Timer0_10us_Config();   // 配置定时器0为10us中断
+    //Timer0_10us_Config();   // 配置定时器0为10us中断
+	UART_Timeout_Timer0_Config(115200ul);
 }
 
 //========================================================================
@@ -119,6 +120,7 @@ void Process_UART_Frame(u8 *buf, u8 len)
     }
     TX1_write2buff('\r');   // 换行
     TX1_write2buff('\n');
+	COM1.RX_Cnt = 0;
 }
 
 void main(void)
@@ -126,7 +128,7 @@ void main(void)
 	
 	EAXSFR();		/* 扩展寄存器访问使能 */
 	
-	//GPIO_config();
+	GPIO_config();
 	TIMER_Config();
 	UART_config();
 	EA = 1;
@@ -141,26 +143,39 @@ void main(void)
 	delay_ms(1000);
 	printf("------------\n");
 	
+	NVIC_Timer0_Init(ENABLE, Priority_2);
+	
+//	Timer0_Run(1);    // 启动
+//	Timer0_Stop();    // 停止
+//	T0_Load(65536UL - (MAIN_Fosc / 100000UL));  // 计数重置
+
+	P55 = 1;
+	
 	while (1)
 	{
-		// 检查是否超时（等待时间 >= 3.5字符时间）
-        if (uart_rx_timeout_cnt >= uart_timeout_threshold)
-        {
-            // 防止重复进入
-            uart_rx_timeout_cnt = 0xFFFF;
-            
-            if (COM1.RX_Cnt > 0)
-            {
-                // 收到数据，回显
-                Process_UART_Frame(RX1_Buffer, COM1.RX_Cnt);
-                COM1.RX_Cnt = 0;
-            }
-            
-            // ★ 复位计数器，准备下一次判断（关键！）
-            uart_rx_timeout_cnt = 0;
-        }
-        
-        // 其他任务...
+		if (uart_rx_timeout_flag) 
+		{
+			uart_rx_timeout_flag = 0;
+			Process_UART_Frame(RX1_Buffer, COM1.RX_Cnt);
+		}
+//		// 检查是否超时（等待时间 >= 3.5字符时间）
+//        if (uart_rx_timeout_cnt >= uart_timeout_threshold)
+//        {
+//            // 防止重复进入
+//            uart_rx_timeout_cnt = 0xFFFF;
+//            
+//            if (COM1.RX_Cnt > 0)
+//            {
+//                // 收到数据，回显
+//                Process_UART_Frame(RX1_Buffer, COM1.RX_Cnt);
+//                COM1.RX_Cnt = 0;
+//            }
+//            
+//            // ★ 复位计数器，准备下一次判断（关键！）
+//            uart_rx_timeout_cnt = 0;
+//        }
+//        
+//        // 其他任务...
 	}
 }
 
