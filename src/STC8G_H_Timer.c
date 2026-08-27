@@ -106,12 +106,11 @@ void Timer0_10us_Config(void)
     TIM_InitStructure.TIM_ClkOut    = DISABLE;
     TIM_InitStructure.TIM_Value     = 65536UL - (MAIN_Fosc / 100000UL);  // 10us中断一次
     TIM_InitStructure.TIM_PS        = 0;
-    TIM_InitStructure.TIM_Run       = ENABLE;
+    TIM_InitStructure.TIM_Run       = DISABLE;
     
     Timer_Inilize(Timer0, &TIM_InitStructure);
     
-    ET0 = 1;    // 使能定时器0中断
-    EA = 1;     // 开启总中断
+//    ET0 = 1;    // 使能定时器0中断
 }
 
 //========================================================================

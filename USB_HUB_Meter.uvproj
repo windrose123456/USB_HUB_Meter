@@ -10,6 +10,7 @@
       <TargetName>USB_HUB_Meter</TargetName>
       <ToolsetNumber>0x0</ToolsetNumber>
       <ToolsetName>MCS-51</ToolsetName>
+      <uAC6>8</uAC6>
       <TargetOption>
         <TargetCommonOption>
           <Device>STC8G1K08 Series</Device>
@@ -148,7 +149,7 @@
             <RestoreSysVw>0</RestoreSysVw>
           </Target>
           <RunDebugAfterBuild>0</RunDebugAfterBuild>
-          <TargetSelection>10</TargetSelection>
+          <TargetSelection>12</TargetSelection>
           <SimDlls>
             <CpuDll></CpuDll>
             <CpuDllArguments></CpuDllArguments>
@@ -217,12 +218,14 @@
             <Mx51P>0</Mx51P>
             <hadXRAM2>0</hadXRAM2>
             <uocXram2>0</uocXram2>
+            <hadXRAM3>0</hadXRAM3>
             <ModC2>0</ModC2>
             <ModH2>0</ModH2>
             <Mdu_R515>0</Mdu_R515>
             <Mdu_F120>0</Mdu_F120>
             <Psoc>0</Psoc>
             <hadIROM2>0</hadIROM2>
+            <hadIROM3>0</hadIROM3>
             <ModSmx2>0</ModSmx2>
             <cBanks>0</cBanks>
             <xBanks>0</xBanks>
@@ -292,6 +295,16 @@
                 <StartAddress>0x0</StartAddress>
                 <Size>0x0</Size>
               </IROM512>
+              <XRA513>
+                <Type>0</Type>
+                <StartAddress>0x0</StartAddress>
+                <Size>0x0</Size>
+              </XRA513>
+              <IROM513>
+                <Type>0</Type>
+                <StartAddress>0x0</StartAddress>
+                <Size>0x0</Size>
+              </IROM513>
             </OnChipMemories>
           </Target51Misc>
           <C51>
@@ -409,49 +422,49 @@
           <GroupName>inc</GroupName>
           <Files>
             <File>
-              <FileName>..\..\STC\project\USB_HUB_Meter\inc\config.h</FileName>
+              <FileName>config.h</FileName>
               <FileType>5</FileType>
-              <FilePath>$TC_ROOT$\..\..\STC\project\USB_HUB_Meter\inc\config.h</FilePath>
+              <FilePath>.\inc\config.h</FilePath>
             </File>
             <File>
-              <FileName>..\..\STC\project\USB_HUB_Meter\inc\STC8G_H_Delay.h</FileName>
+              <FileName>STC8G_H_Delay.h</FileName>
               <FileType>5</FileType>
-              <FilePath>$TC_ROOT$\..\..\STC\project\USB_HUB_Meter\inc\STC8G_H_Delay.h</FilePath>
+              <FilePath>.\inc\STC8G_H_Delay.h</FilePath>
             </File>
             <File>
-              <FileName>..\..\STC\project\USB_HUB_Meter\inc\STC8G_H_GPIO.h</FileName>
+              <FileName>STC8G_H_GPIO.h</FileName>
               <FileType>5</FileType>
-              <FilePath>$TC_ROOT$\..\..\STC\project\USB_HUB_Meter\inc\STC8G_H_GPIO.h</FilePath>
+              <FilePath>.\inc\STC8G_H_GPIO.h</FilePath>
             </File>
             <File>
-              <FileName>..\..\STC\project\USB_HUB_Meter\inc\STC8G_H_NVIC.h</FileName>
+              <FileName>STC8G_H_NVIC.h</FileName>
               <FileType>5</FileType>
-              <FilePath>$TC_ROOT$\..\..\STC\project\USB_HUB_Meter\inc\STC8G_H_NVIC.h</FilePath>
+              <FilePath>.\inc\STC8G_H_NVIC.h</FilePath>
             </File>
             <File>
-              <FileName>..\..\STC\project\USB_HUB_Meter\inc\STC8G_H_Switch.h</FileName>
+              <FileName>STC8G_H_UART.h</FileName>
               <FileType>5</FileType>
-              <FilePath>$TC_ROOT$\..\..\STC\project\USB_HUB_Meter\inc\STC8G_H_Switch.h</FilePath>
-            </File>
-            <File>
-              <FileName>..\..\STC\project\USB_HUB_Meter\inc\STC8G_H_UART.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>$TC_ROOT$\..\..\STC\project\USB_HUB_Meter\inc\STC8G_H_UART.h</FilePath>
-            </File>
-            <File>
-              <FileName>..\..\STC\project\USB_HUB_Meter\inc\STC8H.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>$TC_ROOT$\..\..\STC\project\USB_HUB_Meter\inc\STC8H.h</FilePath>
-            </File>
-            <File>
-              <FileName>..\..\STC\project\USB_HUB_Meter\inc\Type_def.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>$TC_ROOT$\..\..\STC\project\USB_HUB_Meter\inc\Type_def.h</FilePath>
+              <FilePath>.\inc\STC8G_H_UART.h</FilePath>
             </File>
             <File>
               <FileName>STC8G_H_Timer.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\inc\STC8G_H_Timer.h</FilePath>
+            </File>
+            <File>
+              <FileName>STC8G_H_Switch.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\inc\STC8G_H_Switch.h</FilePath>
+            </File>
+            <File>
+              <FileName>STC8H.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\inc\STC8H.h</FilePath>
+            </File>
+            <File>
+              <FileName>Type_def.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\inc\Type_def.h</FilePath>
             </File>
           </Files>
         </Group>
