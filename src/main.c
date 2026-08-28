@@ -7,7 +7,7 @@
 /* --- Web: www.STCAI.com ---------------------------------------------*/
 /* --- BBS: www.STCAIMCU.com  -----------------------------------------*/
 /* --- QQ:  800003751 -------------------------------------------------*/
-/* Èç¹ûÒªÔÚ³ÌÐòÖÐÊ¹ÓÃ´Ë´úÂë,ÇëÔÚ³ÌÐòÖÐ×¢Ã÷Ê¹ÓÃÁËSTCµÄ×ÊÁÏ¼°³ÌÐò            */
+/* ï¿½ï¿½ï¿½Òªï¿½Ú³ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½Ã´Ë´ï¿½ï¿½ï¿½,ï¿½ï¿½ï¿½Ú³ï¿½ï¿½ï¿½ï¿½ï¿½×¢ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½STCï¿½ï¿½ï¿½ï¿½ï¿½Ï¼ï¿½ï¿½ï¿½ï¿½ï¿½            */
 /*---------------------------------------------------------------------*/
 
 #include	"config.h"
@@ -17,33 +17,34 @@
 #include	"STC8G_H_Delay.h"
 #include	"STC8G_H_NVIC.h"
 #include	"STC8G_H_Switch.h"
+#include	"procotol.h"
 
-/*************	¹¦ÄÜËµÃ÷	**************
+/*************	ï¿½ï¿½ï¿½ï¿½Ëµï¿½ï¿½	**************
 
 
 ******************************************/
 
-/*************	±¾µØ³£Á¿ÉùÃ÷	**************/
+/*************	ï¿½ï¿½ï¿½Ø³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½	**************/
 
 
-/*************	±¾µØ±äÁ¿ÉùÃ÷	**************/
+/*************	ï¿½ï¿½ï¿½Ø±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½	**************/
 
-// ´®¿Ú½ÓÊÕÏà¹Ø±äÁ¿
-volatile u16 uart_rx_timeout_cnt = 0;   // ´®¿Ú½ÓÊÕ³¬Ê±¼ÆÊýÆ÷£¨10usµ¥Î»£©
-static u16 uart_timeout_threshold = 0;         // 3.5×Ö·ûÊ±¼äãÐÖµ£¨10usµ¥Î»£©
+// ï¿½ï¿½ï¿½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½Ø±ï¿½ï¿½ï¿½
+volatile u16 uart_rx_timeout_cnt = 0;   // ï¿½ï¿½ï¿½Ú½ï¿½ï¿½Õ³ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½10usï¿½ï¿½Î»ï¿½ï¿½
+static u16 uart_timeout_threshold = 0;         // 3.5ï¿½Ö·ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½10usï¿½ï¿½Î»ï¿½ï¿½
 static bit uart_frame_complete = 0;
 
-/*************  Íâ²¿º¯ÊýºÍ±äÁ¿ÉùÃ÷ *****************/
+/*************  ï¿½â²¿ï¿½ï¿½ï¿½ï¿½ï¿½Í±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ *****************/
 
 
-/******************* IOÅäÖÃº¯Êý *******************/
+/******************* IOï¿½ï¿½ï¿½Ãºï¿½ï¿½ï¿½ *******************/
 void	GPIO_config(void)
 {
-	GPIO_InitTypeDef	GPIO_InitStructure;		//½á¹¹¶¨Òå
+	GPIO_InitTypeDef	GPIO_InitStructure;		//ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½
 
-	//GPIO_InitStructure.Pin  = GPIO_Pin_0 | GPIO_Pin_1;		//Ö¸¶¨Òª³õÊ¼»¯µÄIO, GPIO_Pin_0 ~ GPIO_Pin_7
-	//GPIO_InitStructure.Mode = GPIO_PullUp;	//Ö¸¶¨IOµÄÊäÈë»òÊä³ö·½Ê½,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,GPIO_OUT_PP
-	//GPIO_Inilize(GPIO_P3,&GPIO_InitStructure);	//³õÊ¼»¯
+	//GPIO_InitStructure.Pin  = GPIO_Pin_0 | GPIO_Pin_1;		//Ö¸ï¿½ï¿½Òªï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½IO, GPIO_Pin_0 ~ GPIO_Pin_7
+	//GPIO_InitStructure.Mode = GPIO_PullUp;	//Ö¸ï¿½ï¿½IOï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê½,GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,GPIO_OUT_PP
+	//GPIO_Inilize(GPIO_P3,&GPIO_InitStructure);	//ï¿½ï¿½Ê¼ï¿½ï¿½
 	
 	//GPIO_InitStructure.Pin  = GPIO_Pin_0 | GPIO_Pin_1;
 	GPIO_InitStructure.Pin  = GPIO_Pin_5;
@@ -54,34 +55,34 @@ void	GPIO_config(void)
 //	GPIO_InitStructure.Mode = GPIO_HighZ;
 //	GPIO_Inilize(GPIO_P5,&GPIO_InitStructure);
 	
-	//½«RST×÷ÎªÄ£Ê½Ñ¡ÔñÒý½Å£¬ÉÏµçË²¼ä»áÓÐ6.5ms¸ßµçÆ½
+	//ï¿½ï¿½RSTï¿½ï¿½ÎªÄ£Ê½Ñ¡ï¿½ï¿½ï¿½ï¿½ï¿½Å£ï¿½ï¿½Ïµï¿½Ë²ï¿½ï¿½ï¿½ï¿½ï¿½6.5msï¿½ßµï¿½Æ½
 	GPIO_InitStructure.Pin  = GPIO_Pin_4;
 	GPIO_InitStructure.Mode = GPIO_HighZ;
 	GPIO_Inilize(GPIO_P5,&GPIO_InitStructure);
 	delay_ms(10);
 }
 
-/***************  ´®¿Ú³õÊ¼»¯º¯Êý *****************/
+/***************  ï¿½ï¿½ï¿½Ú³ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ *****************/
 void	UART_config(void)
 {
-	GPIO_InitTypeDef	GPIO_InitStructure;		//½á¹¹¶¨Òå
-	COMx_InitDefine		COMx_InitStructure;					//½á¹¹¶¨Òå
+	GPIO_InitTypeDef	GPIO_InitStructure;		//ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½
+	COMx_InitDefine		COMx_InitStructure;					//ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½
 	
 	GPIO_InitStructure.Pin  = GPIO_Pin_0 | GPIO_Pin_1;
 	GPIO_InitStructure.Mode = GPIO_PullUp;
 	GPIO_Inilize(GPIO_P3,&GPIO_InitStructure);
 	
 	COMx_InitStructure.UART_Mode      = UART_8bit_BRTx;	//Ä£Ê½, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,UART_9bit_BRTx
-	COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;			//Ñ¡Ôñ²¨ÌØÂÊ·¢ÉúÆ÷, BRT_Timer1, BRT_Timer2 (×¢Òâ: ´®¿Ú2¹Ì¶¨Ê¹ÓÃBRT_Timer2)
-	COMx_InitStructure.UART_BaudRate  = 115200ul;			//²¨ÌØÂÊ, ÔÚ±¾´úÂëÖÐ£¬Òò¶¨Ê±Æ÷16Î»£¬²¨ÌØÂÊÄÜÉèÖÃµ½2400~115200
-	COMx_InitStructure.UART_RxEnable  = ENABLE;				//½ÓÊÕÔÊÐí,   ENABLE»òDISABLE
-	COMx_InitStructure.BaudRateDouble = DISABLE;			//²¨ÌØÂÊ¼Ó±¶, ENABLE»òDISABLE
+	COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;			//Ñ¡ï¿½ï¿½ï¿½ï¿½ï¿½Ê·ï¿½ï¿½ï¿½ï¿½ï¿½, BRT_Timer1, BRT_Timer2 (×¢ï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½2ï¿½Ì¶ï¿½Ê¹ï¿½ï¿½BRT_Timer2)
+	COMx_InitStructure.UART_BaudRate  = 115200ul;			//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½, ï¿½Ú±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½Ê±ï¿½ï¿½16Î»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ãµï¿½2400~115200
+	COMx_InitStructure.UART_RxEnable  = ENABLE;				//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½,   ENABLEï¿½ï¿½DISABLE
+	COMx_InitStructure.BaudRateDouble = DISABLE;			//ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼Ó±ï¿½, ENABLEï¿½ï¿½DISABLE
 	
-	// **¼ÆËã3.5×Ö·ûÊ±¼äãÐÖµ£¨10usµ¥Î»£¬ÏòÉÏÈ¡Õû£©**
+	// **ï¿½ï¿½ï¿½ï¿½3.5ï¿½Ö·ï¿½Ê±ï¿½ï¿½ï¿½ï¿½Öµï¿½ï¿½10usï¿½ï¿½Î»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½**
     uart_timeout_threshold = UART_Get_3_5CharTime_10us(COMx_InitStructure.UART_BaudRate);
 	
-	UART_Configuration(UART1, &COMx_InitStructure);		//³õÊ¼»¯´®¿Ú1 UART1,UART2,UART3,UART4
-	NVIC_UART1_Init(ENABLE,Priority_1);		//ÖÐ¶ÏÊ¹ÄÜ, ENABLE/DISABLE; ÓÅÏÈ¼¶(µÍµ½¸ß) Priority_0,Priority_1,Priority_2,Priority_3
+	UART_Configuration(UART1, &COMx_InitStructure);		//ï¿½ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½1 UART1,UART2,UART3,UART4
+	NVIC_UART1_Init(ENABLE,Priority_1);		//ï¿½Ð¶ï¿½Ê¹ï¿½ï¿½, ENABLE/DISABLE; ï¿½ï¿½ï¿½È¼ï¿½(ï¿½Íµï¿½ï¿½ï¿½) Priority_0,Priority_1,Priority_2,Priority_3
 
 	UART1_SW(UART1_SW_P30_P31);		//UART1_SW_P30_P31,UART1_SW_P36_P37,UART1_SW_P16_P17,UART1_SW_P43_P44
 }
@@ -89,36 +90,36 @@ void	UART_config(void)
 /**********************************************/
 
 //========================================================================
-// º¯Êý: TIMER_Config£¨Í³Ò»ÅäÖÃÈë¿Ú£©
+// ï¿½ï¿½ï¿½ï¿½: TIMER_Configï¿½ï¿½Í³Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ú£ï¿½
 //========================================================================
 void TIMER_Config(void)
 {
-    //Timer0_10us_Config();   // ÅäÖÃ¶¨Ê±Æ÷0Îª10usÖÐ¶Ï
+    //Timer0_10us_Config();   // ï¿½ï¿½ï¿½Ã¶ï¿½Ê±ï¿½ï¿½0Îª10usï¿½Ð¶ï¿½
 	UART_Timeout_Timer0_Config(115200ul);
 }
 
 //========================================================================
-// º¯Êý: Process_UART_Frame£¨»ØÏÔÄ£Ê½£©
-// ÃèÊö: ÊÕµ½Ê²Ã´¾Í´òÓ¡Ê²Ã´
-// ²ÎÊý: *buf - Êý¾Ý»º³åÇø, len - Êý¾Ý³¤¶È
-// ·µ»Ø: none
+// ï¿½ï¿½ï¿½ï¿½: Process_UART_Frameï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä£Ê½ï¿½ï¿½
+// ï¿½ï¿½ï¿½ï¿½: ï¿½Õµï¿½Ê²Ã´ï¿½Í´ï¿½Ó¡Ê²Ã´
+// ï¿½ï¿½ï¿½ï¿½: *buf - ï¿½ï¿½ï¿½Ý»ï¿½ï¿½ï¿½ï¿½ï¿½, len - ï¿½ï¿½ï¿½Ý³ï¿½ï¿½ï¿½
+// ï¿½ï¿½ï¿½ï¿½: none
 //========================================================================
 void Process_UART_Frame(u8 *buf, u8 len)
 {
     u8 i;
     
-    // ·½Ê½1£ºÊ¹ÓÃ printf£¨»á¾­¹ý putchar£¬×îÖÕµ÷ÓÃ TX1_write2buff£©
-    // printf("ÊÕµ½ %d ×Ö½Ú: ", len);
+    // ï¿½ï¿½Ê½1ï¿½ï¿½Ê¹ï¿½ï¿½ printfï¿½ï¿½ï¿½á¾­ï¿½ï¿½ putcharï¿½ï¿½ï¿½ï¿½ï¿½Õµï¿½ï¿½ï¿½ TX1_write2buffï¿½ï¿½
+    // printf("ï¿½Õµï¿½ %d ï¿½Ö½ï¿½: ", len);
     // for (i = 0; i < len; i++) {
-    //     printf("%02X ", buf[i]);   // ÒÔÊ®Áù½øÖÆ´òÓ¡
+    //     printf("%02X ", buf[i]);   // ï¿½ï¿½Ê®ï¿½ï¿½ï¿½ï¿½ï¿½Æ´ï¿½Ó¡
     // }
     // printf("\r\n");
     
-    // ¡ï ·½Ê½2£ºÖ±½ÓÔ­Ñù»ØÏÔ£¨ÍÆ¼öÓÃÓÚ¼òµ¥²âÊÔ£©
+    // ï¿½ï¿½ ï¿½ï¿½Ê½2ï¿½ï¿½Ö±ï¿½ï¿½Ô­ï¿½ï¿½ï¿½ï¿½ï¿½Ô£ï¿½ï¿½Æ¼ï¿½ï¿½ï¿½ï¿½Ú¼òµ¥²ï¿½ï¿½Ô£ï¿½
     for (i = 0; i < len; i++) {
         TX1_write2buff(buf[i]);
     }
-    TX1_write2buff('\r');   // »»ÐÐ
+    TX1_write2buff('\r');   // ï¿½ï¿½ï¿½ï¿½
     TX1_write2buff('\n');
 	COM1.RX_Cnt = 0;
 }
@@ -126,18 +127,18 @@ void Process_UART_Frame(u8 *buf, u8 len)
 void main(void)
 {
 	
-	EAXSFR();		/* À©Õ¹¼Ä´æÆ÷·ÃÎÊÊ¹ÄÜ */
+	EAXSFR();		/* ï¿½ï¿½Õ¹ï¿½Ä´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê¹ï¿½ï¿½ */
 	
 	GPIO_config();
 	TIMER_Config();
 	UART_config();
 	EA = 1;
 	
-	// 2. µÈ´ýÏµÍ³ÎÈ¶¨
+	// 2. ï¿½È´ï¿½ÏµÍ³ï¿½È¶ï¿½
     delay_ms(100);
 
 	
-	printf("STC8G1K08 UART1 Test Programme!\r\n");	//UART1·¢ËÍÒ»¸ö×Ö·û´®
+	printf("STC8G1K08 UART1 Test Programme!\r\n");	//UART1ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½
 	delay_ms(1000);
 	printf("************\n");
 	delay_ms(1000);
@@ -145,9 +146,9 @@ void main(void)
 	
 	NVIC_Timer0_Init(ENABLE, Priority_2);
 	
-//	Timer0_Run(1);    // Æô¶¯
+//	Timer0_Run(1);    // ï¿½ï¿½ï¿½ï¿½
 //	Timer0_Stop();    // Í£Ö¹
-//	T0_Load(65536UL - (MAIN_Fosc / 100000UL));  // ¼ÆÊýÖØÖÃ
+//	T0_Load(65536UL - (MAIN_Fosc / 100000UL));  // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
 	P55 = 1;
 	
@@ -156,26 +157,26 @@ void main(void)
 		if (uart_rx_timeout_flag) 
 		{
 			uart_rx_timeout_flag = 0;
-			Process_UART_Frame(RX1_Buffer, COM1.RX_Cnt);
+			protocol_process();
 		}
-//		// ¼ì²éÊÇ·ñ³¬Ê±£¨µÈ´ýÊ±¼ä >= 3.5×Ö·ûÊ±¼ä£©
+//		// ï¿½ï¿½ï¿½ï¿½Ç·ï¿½Ê±ï¿½ï¿½ï¿½È´ï¿½Ê±ï¿½ï¿½ >= 3.5ï¿½Ö·ï¿½Ê±ï¿½ä£©
 //        if (uart_rx_timeout_cnt >= uart_timeout_threshold)
 //        {
-//            // ·ÀÖ¹ÖØ¸´½øÈë
+//            // ï¿½ï¿½Ö¹ï¿½Ø¸ï¿½ï¿½ï¿½ï¿½ï¿½
 //            uart_rx_timeout_cnt = 0xFFFF;
 //            
 //            if (COM1.RX_Cnt > 0)
 //            {
-//                // ÊÕµ½Êý¾Ý£¬»ØÏÔ
+//                // ï¿½Õµï¿½ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½ï¿½
 //                Process_UART_Frame(RX1_Buffer, COM1.RX_Cnt);
 //                COM1.RX_Cnt = 0;
 //            }
 //            
-//            // ¡ï ¸´Î»¼ÆÊýÆ÷£¬×¼±¸ÏÂÒ»´ÎÅÐ¶Ï£¨¹Ø¼ü£¡£©
+//            // ï¿½ï¿½ ï¿½ï¿½Î»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½×¼ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ð¶Ï£ï¿½ï¿½Ø¼ï¿½ï¿½ï¿½ï¿½ï¿½
 //            uart_rx_timeout_cnt = 0;
 //        }
 //        
-//        // ÆäËûÈÎÎñ...
+//        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½...
 	}
 }
 

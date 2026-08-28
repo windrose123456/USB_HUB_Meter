@@ -1,0 +1,323 @@
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                    08/28/2026  14:14:14  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22.4.0, INVOKED BY:
+C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\BIN\BL51.EXE .\Objects\bootloader.obj TO .\Objects\Bootloader PRINT (.\Listings
+>> \Bootloader.m51) RAMSIZE (256) CODE (0X1C00-0X1FFF)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  .\Objects\bootloader.obj (BOOTLOADER)
+  C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C_STARTUP)
+
+
+LINK MAP OF MODULE:  .\Objects\Bootloader (BOOTLOADER)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            DATA    0008H     0025H     UNIT         _DATA_GROUP_
+            IDATA   002DH     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+                    0003H     1BFDH                  *** GAP ***
+            CODE    1C00H     010EH     UNIT         ?PR?MAIN?BOOTLOADER
+            CODE    1D0EH     0033H     UNIT         ?PR?_UART_RECV_TOUT?BOOTLOADER
+            CODE    1D41H     0020H     UNIT         ?PR?_DELAY_MS?BOOTLOADER
+            CODE    1D61H     001CH     UNIT         ?PR?_IAP_READ?BOOTLOADER
+            CODE    1D7DH     001CH     UNIT         ?PR?_IAP_WRITE?BOOTLOADER
+            CODE    1D99H     001AH     UNIT         ?PR?_IAP_ERASE_PAGE?BOOTLOADER
+            CODE    1DB3H     0012H     UNIT         ?PR?UART_INIT?BOOTLOADER
+            CODE    1DC5H     000EH     UNIT         ?PR?_SET_FLAG?BOOTLOADER
+            CODE    1DD3H     000CH     UNIT         ?C_C51STARTUP
+            CODE    1DDFH     0009H     UNIT         ?PR?JUMP_APP?BOOTLOADER
+            CODE    1DE8H     0008H     UNIT         ?PR?_UART_SEND?BOOTLOADER
+            CODE    1DF0H     0008H     UNIT         ?PR?UART_RECV?BOOTLOADER
+            CODE    1DF8H     0008H     UNIT         ?PR?IAP_OFF?BOOTLOADER
+
+
+
+OVERLAY MAP OF MODULE:   .\Objects\Bootloader (BOOTLOADER)
+
+
+SEGMENT                                  DATA_GROUP 
+  +--> CALLED SEGMENT                  START    LENGTH
+------------------------------------------------------
+?C_C51STARTUP                          -----    -----
+  +--> ?PR?MAIN?BOOTLOADER
+
+?PR?MAIN?BOOTLOADER                    0008H    0023H
+  +--> ?PR?UART_INIT?BOOTLOADER
+  +--> ?PR?_DELAY_MS?BOOTLOADER
+  +--> ?PR?_IAP_READ?BOOTLOADER
+  +--> ?PR?_UART_RECV_TOUT?BOOTLOADER
+  +--> ?PR?JUMP_APP?BOOTLOADER
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  08/28/2026  14:14:14  PAGE 2
+
+
+  +--> ?PR?_UART_SEND?BOOTLOADER
+  +--> ?PR?_IAP_ERASE_PAGE?BOOTLOADER
+  +--> ?PR?_IAP_WRITE?BOOTLOADER
+  +--> ?PR?_SET_FLAG?BOOTLOADER
+
+?PR?_IAP_READ?BOOTLOADER               -----    -----
+  +--> ?PR?IAP_OFF?BOOTLOADER
+
+?PR?_UART_RECV_TOUT?BOOTLOADER         002BH    0002H
+
+?PR?JUMP_APP?BOOTLOADER                -----    -----
+  +--> ?PR?IAP_OFF?BOOTLOADER
+
+?PR?_IAP_ERASE_PAGE?BOOTLOADER         -----    -----
+  +--> ?PR?IAP_OFF?BOOTLOADER
+
+?PR?_IAP_WRITE?BOOTLOADER              -----    -----
+  +--> ?PR?IAP_OFF?BOOTLOADER
+
+?PR?_SET_FLAG?BOOTLOADER               -----    -----
+  +--> ?PR?_IAP_ERASE_PAGE?BOOTLOADER
+  +--> ?PR?_IAP_WRITE?BOOTLOADER
+
+
+
+SYMBOL TABLE OF MODULE:  .\Objects\Bootloader (BOOTLOADER)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        BOOTLOADER
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:0080H         PUBLIC        P0
+  C:1D12H         SYMBOL        _uart_recv_tout
+  D:0090H         PUBLIC        P1
+  D:00A0H         PUBLIC        P2
+  D:00B0H         PUBLIC        P3
+  D:00C0H         PUBLIC        P4
+  D:00C8H         PUBLIC        P5
+  B:00A8H.7       PUBLIC        EA
+  D:00A8H         PUBLIC        IE
+  D:00C5H         PUBLIC        IAP_CMD
+  D:00B8H         PUBLIC        IP
+  B:0098H.0       PUBLIC        RI
+  B:0098H.1       PUBLIC        TI
+  D:00C3H         PUBLIC        IAP_ADDRH
+  D:0081H         PUBLIC        SP
+  D:00D8H         PUBLIC        CCON
+  D:00C4H         PUBLIC        IAP_ADDRL
+  C:1C00H         PUBLIC        main
+  C:1D99H         SYMBOL        _iap_erase_page
+  D:0099H         PUBLIC        SBUF
+  D:0098H         PUBLIC        SCON
+  D:0089H         PUBLIC        TMOD
+  D:0088H         PUBLIC        TCON
+  C:1D61H         SYMBOL        _iap_read
+  D:008EH         PUBLIC        AUXR
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  08/28/2026  14:14:14  PAGE 3
+
+
+  D:00C7H         PUBLIC        IAP_CONTR
+  C:1DC5H         SYMBOL        _set_flag
+  C:1D7DH         SYMBOL        _iap_write
+  C:1DE8H         SYMBOL        _uart_send
+  D:008DH         PUBLIC        TH1
+  C:1DF0H         SYMBOL        uart_recv
+  D:008BH         PUBLIC        TL1
+  C:1D41H         SYMBOL        _delay_ms
+  C:1DB3H         SYMBOL        uart_init
+  D:00C2H         PUBLIC        IAP_DATA
+  B:0088H.6       PUBLIC        TR1
+  C:1DF8H         SYMBOL        iap_off
+  C:1DDFH         SYMBOL        jump_app
+  D:00C6H         PUBLIC        IAP_TRIG
+  D:00D0H         PUBLIC        PSW
+  -------         PROC          _DELAY_MS
+  D:0006H         SYMBOL        ms
+  -------         DO            
+  D:0004H         SYMBOL        i
+  D:0002H         SYMBOL        j
+  -------         ENDDO         
+  C:1D41H         LINE#         40
+  C:1D41H         LINE#         42
+  C:1D4BH         LINE#         43
+  C:1D60H         LINE#         44
+  -------         ENDPROC       _DELAY_MS
+  -------         PROC          UART_INIT
+  C:1DB3H         LINE#         47
+  C:1DB3H         LINE#         48
+  C:1DB6H         LINE#         49
+  C:1DB9H         LINE#         50
+  C:1DBCH         LINE#         51
+  C:1DBFH         LINE#         52
+  C:1DC2H         LINE#         53
+  C:1DC4H         LINE#         54
+  -------         ENDPROC       UART_INIT
+  -------         PROC          _UART_SEND
+  D:0007H         SYMBOL        c
+  C:1DE8H         LINE#         56
+  C:1DE8H         LINE#         57
+  C:1DEFH         LINE#         58
+  -------         ENDPROC       _UART_SEND
+  -------         PROC          UART_RECV
+  C:1DF0H         LINE#         60
+  C:1DF0H         LINE#         61
+  C:1DF5H         LINE#         62
+  C:1DF7H         LINE#         63
+  -------         ENDPROC       UART_RECV
+  C:1D0EH         SYMBOL        L?0057
+  -------         PROC          L?0056
+  -------         ENDPROC       L?0056
+  C:1D0EH         SYMBOL        L?0057
+  -------         PROC          _UART_RECV_TOUT
+  D:0006H         SYMBOL        ms
+  -------         DO            
+  D:0004H         SYMBOL        t
+  -------         DO            
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  08/28/2026  14:14:14  PAGE 4
+
+
+  D:002BH         SYMBOL        d
+  -------         ENDDO         
+  -------         ENDDO         
+  C:1D12H         LINE#         66
+  C:1D12H         LINE#         68
+  C:1D1CH         LINE#         69
+  C:1D24H         LINE#         70
+  C:1D37H         LINE#         71
+  C:1D3EH         LINE#         72
+  C:1D40H         LINE#         73
+  -------         ENDPROC       _UART_RECV_TOUT
+  -------         PROC          IAP_OFF
+  C:1DF8H         LINE#         76
+  C:1DF8H         LINE#         77
+  C:1DFFH         LINE#         78
+  -------         ENDPROC       IAP_OFF
+  -------         PROC          _IAP_READ
+  D:0004H         SYMBOL        addr
+  -------         DO            
+  D:0007H         SYMBOL        d
+  -------         ENDDO         
+  C:1D61H         LINE#         80
+  C:1D65H         LINE#         82
+  C:1D68H         LINE#         83
+  C:1D6BH         LINE#         84
+  C:1D6DH         LINE#         85
+  C:1D70H         LINE#         86
+  C:1D76H         LINE#         87
+  C:1D78H         LINE#         88
+  C:1D7AH         LINE#         89
+  -------         ENDPROC       _IAP_READ
+  -------         PROC          _IAP_WRITE
+  D:0002H         SYMBOL        addr
+  D:0005H         SYMBOL        d
+  C:1D7DH         LINE#         93
+  C:1D81H         LINE#         94
+  C:1D84H         LINE#         95
+  C:1D87H         LINE#         96
+  C:1D89H         LINE#         97
+  C:1D8CH         LINE#         98
+  C:1D8EH         LINE#         99
+  C:1D94H         LINE#         100
+  C:1D96H         LINE#         101
+  -------         ENDPROC       _IAP_WRITE
+  -------         PROC          _IAP_ERASE_PAGE
+  D:0004H         SYMBOL        addr
+  C:1D99H         LINE#         104
+  C:1D9DH         LINE#         105
+  C:1DA0H         LINE#         106
+  C:1DA3H         LINE#         107
+  C:1DA5H         LINE#         108
+  C:1DA8H         LINE#         109
+  C:1DAEH         LINE#         110
+  C:1DB0H         LINE#         111
+  -------         ENDPROC       _IAP_ERASE_PAGE
+  -------         PROC          _SET_FLAG
+  D:0003H         SYMBOL        val
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  08/28/2026  14:14:14  PAGE 5
+
+
+  C:1DC5H         LINE#         115
+  C:1DC7H         LINE#         116
+  C:1DCEH         LINE#         117
+  -------         ENDPROC       _SET_FLAG
+  -------         PROC          JUMP_APP
+  C:1DDFH         LINE#         121
+  C:1DDFH         LINE#         122
+  C:1DE2H         LINE#         123
+  C:1DE4H         LINE#         125
+  C:1DE7H         LINE#         126
+  -------         ENDPROC       JUMP_APP
+  -------         PROC          MAIN
+  -------         DO            
+  D:0007H         SYMBOL        flag
+  D:0007H         SYMBOL        cmd
+  D:0008H         SYMBOL        addr
+  D:000AH         SYMBOL        len
+  D:0001H         SYMBOL        i
+  D:000BH         SYMBOL        buf
+  -------         ENDDO         
+  C:1C00H         LINE#         129
+  C:1C00H         LINE#         134
+  C:1C03H         LINE#         135
+  C:1C06H         LINE#         136
+  C:1C0DH         LINE#         139
+  C:1C14H         LINE#         141
+  C:1C19H         LINE#         143
+  C:1C23H         LINE#         144
+  C:1C23H         LINE#         145
+  C:1C23H         LINE#         147
+  C:1C26H         LINE#         150
+  C:1C26H         LINE#         151
+  C:1C2DH         LINE#         152
+  C:1C33H         LINE#         154
+  C:1C47H         LINE#         155
+  C:1C47H         LINE#         156
+  C:1C4CH         LINE#         157
+  C:1C5AH         LINE#         158
+  C:1C64H         LINE#         159
+  C:1C66H         LINE#         160
+  C:1C69H         LINE#         162
+  C:1C69H         LINE#         163
+  C:1C72H         LINE#         164
+  C:1C7AH         LINE#         165
+  C:1C81H         LINE#         166
+  C:1C88H         LINE#         167
+  C:1C8AH         LINE#         168
+  C:1C8CH         LINE#         170
+  C:1C8CH         LINE#         171
+  C:1C95H         LINE#         172
+  C:1C9DH         LINE#         173
+  C:1CA4H         LINE#         174
+  C:1CAEH         LINE#         175
+  C:1CB6H         LINE#         176
+  C:1CC2H         LINE#         177
+  C:1CCAH         LINE#         178
+  C:1CE0H         LINE#         179
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  08/28/2026  14:14:14  PAGE 6
+
+
+  C:1CE5H         LINE#         180
+  C:1CE8H         LINE#         182
+  C:1CE8H         LINE#         183
+  C:1CEDH         LINE#         184
+  C:1CF4H         LINE#         185
+  C:1CF9H         LINE#         186
+  C:1D00H         LINE#         187
+  C:1D03H         LINE#         188
+  C:1D06H         LINE#         190
+  C:1D06H         LINE#         191
+  C:1D0BH         LINE#         192
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        BOOTLOADER
+
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?UART_RECV?BOOTLOADER
+
+Program Size: data=46.0 xdata=0 code=515
+LINK/LOCATE RUN COMPLETE.  1 WARNING(S),  0 ERROR(S)
