@@ -1,32 +1,54 @@
-# Keil 编译中间文件
+# ==================== Keil (bootloader / USB_HUB_Meter) ====================
+# 编译输出目录
 list/
+Listings/
 output/
+Objects/
+
+# 编译中间文件
 *.crf
 *.d
 *.o
+*.obj
 *.axf
 *.elf
 *.sct
 *.lnp
 *.dep
-*.bak
+*.lst
+*.map
+*.m51
+*.build_log.htm
+*.__i
+*.SBR
+
+# 编译产物
+*.hex
+*.bin
 
 # Keil GUI 配置文件
 *.uvgui*
 *.uvoptx
 *.uvopt
 *.uvproj.bak
+*.bak
 
-# 系统文件
+# ==================== C# / .NET (USB_HUB_Meter_Host) ====================
+.vs/
+bin/
+obj/
+*.csproj.user
+*.suo
+*.user
+*.userosscache
+*.sln.docstats
+
+# NuGet
+packages/
+*.nupkg
+
+# ==================== 系统 / 通用 ====================
 Thumbs.db
 .DS_Store
-
-# 其他临时文件
 *.log
-*.htm
-*.lst
-*.map
-*.build_log.htm
 *.cfg
-*.__i
-*.SBR
