@@ -47,6 +47,7 @@ namespace USB_HUB_Meter_Host
             {
                 Location = new Point(10, 11),
                 Size = new Size(120, 25),
+                DropDownWidth = 245,
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = Theme.BgInput,
                 ForeColor = Theme.TextMain,
@@ -146,23 +147,23 @@ namespace USB_HUB_Meter_Host
             {
                 Text = "间隔",
                 AutoSize = true,
-                Location = new Point(120, 10),
+                Location = new Point(110, 10),
                 ForeColor = Theme.TextDim,
                 Font = Theme.FontNormal,
             };
 
-            cboInterval = new ComboBox
+            txtInterval = new TextBox
             {
-                Location = new Point(155, 6),
-                Size = new Size(70, 23),
-                DropDownStyle = ComboBoxStyle.DropDownList,
+                Text = "500",
+                Location = new Point(155, 7),
+                Size = new Size(60, 23),
                 BackColor = Theme.BgInput,
                 ForeColor = Theme.TextMain,
-                FlatStyle = FlatStyle.Flat,
+                BorderStyle = BorderStyle.FixedSingle,
                 Font = Theme.FontNormal,
+                MaxLength = 5,
             };
-            cboInterval.Items.AddRange(new object[] { "200", "500", "1000", "2000" });
-            cboInterval.SelectedIndex = 1;
+            txtInterval.KeyPress += txtInterval_KeyPress;
 
             lblIntervalMs = new Label
             {
@@ -177,7 +178,7 @@ namespace USB_HUB_Meter_Host
             {
                 Text = "显示点数",
                 AutoSize = true,
-                Location = new Point(280, 10),
+                Location = new Point(275, 10),
                 ForeColor = Theme.TextDim,
                 Font = Theme.FontNormal,
             };
@@ -196,10 +197,11 @@ namespace USB_HUB_Meter_Host
             cboMaxPoints.SelectedIndex = 1;
 
             btnReadOnce = MakeToolBtn("读取一次", 460, DoReadOnce);
-            btnReadOnce.Size = new Size(90, 25);
+            btnReadOnce.Location = new Point(460, 4);
+            btnReadOnce.Size = new Size(90, 28);
 
             pnlChartControls.Controls.AddRange(new Control[] {
-                chkAuto, lblInterval, cboInterval, lblIntervalMs,
+                chkAuto, lblInterval, txtInterval, lblIntervalMs,
                 lblMaxPoints, cboMaxPoints, btnReadOnce
             });
 
@@ -233,7 +235,7 @@ namespace USB_HUB_Meter_Host
 
             txtFwPath = new TextBox
             {
-                Location = new Point(80, 35),
+                Location = new Point(88, 35),
                 Size = new Size(550, 23),
                 BackColor = Theme.BgInput,
                 ForeColor = Theme.TextMain,
@@ -243,7 +245,7 @@ namespace USB_HUB_Meter_Host
 
             btnBrowse = MakeToolBtn("浏览...", 640, DoBrowseFirmware);
             btnBrowse.Location = new Point(640, 34);
-            btnBrowse.Size = new Size(70, 25);
+            btnBrowse.Size = new Size(70, 28);
 
             btnUpdate = MakeToolBtn("开始更新", 12, DoStartUpdate);
             btnUpdate.Location = new Point(12, 66);
@@ -252,7 +254,7 @@ namespace USB_HUB_Meter_Host
 
             progressBar = new ProgressBar
             {
-                Location = new Point(124, 68),
+                Location = new Point(124, 69),
                 Size = new Size(500, 22),
                 Style = ProgressBarStyle.Continuous,
             };
@@ -302,15 +304,16 @@ namespace USB_HUB_Meter_Host
                 Font = Theme.FontTitle,
             };
 
-            btnClearLog = MakeToolBtn("清空", 150, DoClearDebugLog);
-            btnClearLog.Location = new Point(150, 4);
-            btnClearLog.Size = new Size(50, 22);
+            btnClearLog = MakeToolBtn("清空", 175, DoClearDebugLog);
+            btnClearLog.Location = new Point(375, 2);
+            btnClearLog.Size = new Size(70, 28);
+            //btnClearLog.Padding = new Padding(0);
 
             chkLogEnable = new CheckBox
             {
                 Text = "启用日志",
                 AutoSize = true,
-                Location = new Point(210, 6),
+                Location = new Point(235, 6),
                 ForeColor = Theme.TextMain,
                 Font = Theme.FontNormal,
                 Checked = true,
@@ -343,7 +346,6 @@ namespace USB_HUB_Meter_Host
 
             // 绑定事件 (按钮事件由 MakeToolBtn 绑定, 此处绑定其他控件)
             chkAuto.CheckedChanged += chkAuto_CheckedChanged;
-            cboInterval.SelectedIndexChanged += cboInterval_SelectedIndexChanged;
             cboMaxPoints.SelectedIndexChanged += cboMaxPoints_SelectedIndexChanged;
         }
 
@@ -418,7 +420,7 @@ namespace USB_HUB_Meter_Host
         private Panel pnlChartControls;
         private CheckBox chkAuto;
         private Label lblInterval;
-        private ComboBox cboInterval;
+        private TextBox txtInterval;
         private Label lblIntervalMs;
         private Label lblMaxPoints;
         private ComboBox cboMaxPoints;

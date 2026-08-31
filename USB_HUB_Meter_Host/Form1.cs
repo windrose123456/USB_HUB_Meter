@@ -65,8 +65,8 @@ namespace USB_HUB_Meter_Host
 
             cmbPorts.BackColor = Theme.BgInput;
             cmbPorts.ForeColor = Theme.TextMain;
-            cboInterval.BackColor = Theme.BgInput;
-            cboInterval.ForeColor = Theme.TextMain;
+            txtInterval.BackColor = Theme.BgInput;
+            txtInterval.ForeColor = Theme.TextMain;
             cboMaxPoints.BackColor = Theme.BgInput;
             cboMaxPoints.ForeColor = Theme.TextMain;
             txtFwPath.BackColor = Theme.BgInput;
@@ -98,7 +98,7 @@ namespace USB_HUB_Meter_Host
             plot.YAxis2.TickLabelStyle(fontSize: 8);
 
             // 标题和标签
-            plot.Title("INA226 实时数据", size: 11);
+            plot.Title("INA226 实时数据", size: 12);
             plot.XAxis.Label("时间 (s)");
             plot.YAxis.Label("电压(V) / 电流(A)");
             plot.YAxis2.Label("功率(W)");
@@ -139,13 +139,8 @@ namespace USB_HUB_Meter_Host
         /// </summary>
         void ApplyConfigToControls()
         {
-            // 刷新间隔 ComboBox
-            cboInterval.Items.Clear();
-            foreach (var v in _config.Chart.IntervalOptions)
-                cboInterval.Items.Add(v.ToString());
-            // 选中配置值
-            int ivIdx = Array.IndexOf(_config.Chart.IntervalOptions, _config.Chart.AutoRefreshInterval);
-            cboInterval.SelectedIndex = ivIdx >= 0 ? ivIdx : 0;
+            // 刷新间隔 TextBox
+            txtInterval.Text = _config.Chart.AutoRefreshInterval.ToString();
 
             // 最大点数 ComboBox
             cboMaxPoints.Items.Clear();
@@ -445,7 +440,7 @@ namespace USB_HUB_Meter_Host
             if (chkLogEnable == null || !chkLogEnable.Checked) return;
             string hex = BitConverter.ToString(data).Replace("-", " ");
             string cmdName = _proto.GetCmdName(data[3]);
-            AppendDebugLog($"TX  {cmdName}  {hex}");
+            AppendDebugLog($"TX  {cmdName}  {hex}", Color.FromArgb(46, 204, 113));
         }
 
         void LogRx(byte[] data, byte reqCmd)
@@ -455,20 +450,24 @@ namespace USB_HUB_Meter_Host
             byte respCmd = data.Length > 3 ? data[3] : (byte)0;
             string cmdName = _proto.GetCmdName(respCmd);
             string status = data.Length > 4 ? (data[4] == 0 ? "OK" : "ERR") : "";
-            AppendDebugLog($"RX  {cmdName}  {status}  {hex}");
+            AppendDebugLog($"RX  {cmdName}  {status}  {hex}", Color.FromArgb(100, 149, 237));
         }
 
-        void AppendDebugLog(string msg)
+        void AppendDebugLog(string msg, Color? color = null)
         {
             if (rtbDebug == null) return;
             if (InvokeRequired)
             {
-                BeginInvoke(() => AppendDebugLog(msg));
+                BeginInvoke(() => AppendDebugLog(msg, color));
                 return;
             }
             // 每行带时间戳
             string line = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}";
+            rtbDebug.SelectionStart = rtbDebug.TextLength;
+            rtbDebug.SelectionLength = 0;
+            rtbDebug.SelectionColor = color ?? Theme.TextDim;
             rtbDebug.AppendText(line + "\n");
+            rtbDebug.SelectionColor = Theme.TextDim;
             rtbDebug.ScrollToCaret();
 
             // 限制行数，避免内存膨胀
@@ -537,7 +536,7 @@ namespace USB_HUB_Meter_Host
         {
             if (chkAuto.Checked)
             {
-                if (cboInterval.SelectedItem is string ms && int.TryParse(ms, out int interval))
+                if (int.TryParse(txtInterval.Text, out int interval) && interval > 0)
                     _timer!.Interval = interval;
                 _timer?.Start();
             }
@@ -547,12 +546,11 @@ namespace USB_HUB_Meter_Host
             }
         }
 
-        void cboInterval_SelectedIndexChanged(object? s, EventArgs e)
+        void txtInterval_KeyPress(object? s, KeyPressEventArgs e)
         {
-            if (cboInterval.SelectedItem is string ms && int.TryParse(ms, out int interval))
-            {
-                if (_timer != null) _timer.Interval = interval;
-            }
+            // 只允许数字和退格键
+            if (!char.IsDigit(e.KeyChar) && e.KeyChar != '\b')
+                e.Handled = true;
         }
 
         void cboMaxPoints_SelectedIndexChanged(object? s, EventArgs e)

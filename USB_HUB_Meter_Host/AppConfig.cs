@@ -119,9 +119,6 @@ class ChartConfig
     /// <summary>图表最大显示点数</summary>
     public int MaxPoints { get; set; } = 200;
 
-    /// <summary>刷新间隔可选值</summary>
-    public int[] IntervalOptions { get; set; } = [200, 500, 1000, 2000];
-
     /// <summary>最大点数可选值</summary>
     public int[] MaxPointsOptions { get; set; } = [100, 200, 500, 1000];
 }
@@ -137,7 +134,7 @@ class DebugConfig
 
 class WindowConfig
 {
-    public int Width { get; set; } = 900;
+    public int Width { get; set; } = 1000;
     public int Height { get; set; } = 620;
 
     /// <summary>-1 表示居中显示</summary>
