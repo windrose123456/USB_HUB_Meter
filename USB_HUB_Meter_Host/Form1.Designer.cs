@@ -307,7 +307,6 @@ namespace USB_HUB_Meter_Host
             btnClearLog = MakeToolBtn("清空", 175, DoClearDebugLog);
             btnClearLog.Location = new Point(375, 2);
             btnClearLog.Size = new Size(70, 28);
-            //btnClearLog.Padding = new Padding(0);
 
             chkLogEnable = new CheckBox
             {
@@ -319,10 +318,24 @@ namespace USB_HUB_Meter_Host
                 Checked = true,
             };
 
+            var lblRawTitle = new Label
+            {
+                Text = "原始数据 (Raw RX)",
+                Location = new Point(520, 6),
+                AutoSize = true,
+                ForeColor = Theme.TextMain,
+                Font = Theme.FontTitle,
+            };
+
+            btnClearRaw = MakeToolBtn("清空", 175, DoClearRaw);
+            btnClearRaw.Location = new Point(755, 2);
+            btnClearRaw.Size = new Size(70, 28);
+
+            // 调试日志 (左侧 3/4)
             rtbDebug = new RichTextBox
             {
                 Location = new Point(12, 30),
-                Size = new Size(856, 138),
+                Size = new Size(490, 138),
                 ReadOnly = true,
                 BackColor = Color.FromArgb(18, 18, 26),
                 ForeColor = Theme.TextDim,
@@ -331,8 +344,22 @@ namespace USB_HUB_Meter_Host
                 ScrollBars = RichTextBoxScrollBars.Vertical,
             };
 
+            // 原始数据 (右侧 1/4)
+            rtbRaw = new RichTextBox
+            {
+                Location = new Point(512, 30),
+                Size = new Size(356, 138),
+                ReadOnly = true,
+                BackColor = Color.FromArgb(18, 18, 26),
+                ForeColor = Color.FromArgb(200, 200, 100),
+                Font = Theme.FontLog,
+                BorderStyle = BorderStyle.FixedSingle,
+                ScrollBars = RichTextBoxScrollBars.Vertical,
+            };
+
             pnlDebug.Controls.AddRange(new Control[] {
-                lblDebugTitle, btnClearLog, chkLogEnable, rtbDebug
+                lblDebugTitle, btnClearLog, chkLogEnable, rtbDebug,
+                lblRawTitle, btnClearRaw, rtbRaw
             });
 
             // ===== 主布局 (Dock 顺序: Top先填充, Bottom后填充, Fill填剩余) =====
@@ -436,8 +463,8 @@ namespace USB_HUB_Meter_Host
 
         // 调试日志
         private Panel pnlDebug;
-        private Button btnDebugExpand, btnClearLog;
+        private Button btnDebugExpand, btnClearLog, btnClearRaw;
         private CheckBox chkLogEnable;
-        private RichTextBox rtbDebug;
+        private RichTextBox rtbDebug, rtbRaw;
     }
 }

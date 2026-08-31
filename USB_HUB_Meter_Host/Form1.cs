@@ -15,6 +15,7 @@ namespace USB_HUB_Meter_Host
         // ===== 串口 =====
         SerialPort? _port;
         bool _connected;
+        byte[]? _lastRawFrame;  // ReadResponse中保存完整原始帧，用于LogRx
 
         // ===== INA226 数据缓冲 =====
         readonly List<double> _voltageData = new();
@@ -279,20 +280,33 @@ namespace USB_HUB_Meter_Host
             _port.DiscardInBuffer();
             _port.Write(pkt, 0, pkt.Length);
 
-            var resp = ReadResponse(timeoutMs);
-            if (resp != null)
-                LogRx(resp, pkt[3]);
+            // 读取所有返回数据（包括 printf 输出和协议响应）
+            var allBytes = ReadAllBytes(timeoutMs);
+
+            // 显示原始数据
+            if (allBytes.Length > 0)
+                AppendRaw(BitConverter.ToString(allBytes).Replace("-", " "));
+
+            // 尝试从原始数据中解析协议帧
+            _lastRawFrame = null;
+            var resp = TryParseFrame(allBytes);
+            if (_lastRawFrame != null)
+                LogRx(_lastRawFrame, pkt[3]);
 
             return resp;
         }
 
-        byte[]? ReadResponse(int timeoutMs)
+        /// <summary>
+        /// 读取所有可用字节（包括非协议数据如 printf 输出）
+        /// </summary>
+        byte[] ReadAllBytes(int timeoutMs)
         {
-            if (_port == null) return null;
+            if (_port == null) return Array.Empty<byte>();
 
-            var buf = new byte[64];
+            var buf = new byte[256];
             int count = 0;
             var sw = Stopwatch.StartNew();
+            bool gotFirst = false;
 
             while (sw.ElapsedMilliseconds < timeoutMs)
             {
@@ -301,20 +315,110 @@ namespace USB_HUB_Meter_Host
                     if (_port.BytesToRead > 0)
                     {
                         buf[count++] = (byte)_port.ReadByte();
-                        if (count >= 5)
-                        {
-                            int dataLen = buf[2];
-                            if (count >= 5 + dataLen) break;
-                        }
+                        gotFirst = true;
+                    }
+                    else if (gotFirst)
+                    {
+                        // 收到过数据后，短等待看还有没有后续数据
+                        Thread.Sleep(5);
+                        if (_port.BytesToRead == 0) break;
                     }
                     else
                     {
-                        Thread.Sleep(5);
+                        Thread.Sleep(1);
                     }
                 }
                 catch { break; }
             }
 
+            return buf[..count];
+        }
+
+        /// <summary>
+        /// 从字节数组中尝试解析协议帧
+        /// </summary>
+        byte[]? TryParseFrame(byte[] raw)
+        {
+            if (raw.Length < 5) return null;
+
+            // 找帧头
+            for (int i = 0; i <= raw.Length - 5; i++)
+            {
+                if (raw[i] != _proto.Head1 || raw[i + 1] != _proto.Head2)
+                    continue;
+
+                int dataLen = raw[i + 2];
+                int frameLen = 5 + dataLen;
+                if (i + frameLen > raw.Length) continue;
+
+                var frame = raw[i..(i + frameLen)];
+                var payload = _proto.ValidatePacket(frame, frameLen);
+                if (payload != null)
+                {
+                    _lastRawFrame = frame;
+                    return payload;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// 状态机式接收：检测帧头 → 读LEN → 读数据 → 校验
+        /// 帧头后200ms超时，防止卡死
+        /// </summary>
+        byte[]? ReadResponse(int timeoutMs)
+        {
+            if (_port == null || !_port.IsOpen) return null;
+
+            var buf = new byte[64];
+            int count = 0;
+            var sw = Stopwatch.StartNew();
+
+            // 阶段0: 等待帧头 AA
+            _port.ReadTimeout = timeoutMs;
+            while (sw.ElapsedMilliseconds < timeoutMs)
+            {
+                try
+                {
+                    int b = _port.ReadByte();
+                    if (b == _proto.Head1)
+                    {
+                        buf[0] = (byte)b;
+                        count = 1;
+                        break;
+                    }
+                }
+                catch (TimeoutException) { return null; }
+                catch { return null; }
+            }
+
+            if (count == 0) return null;
+
+            // 帧头后用较短超时读后续字节
+            _port.ReadTimeout = 200;
+
+            // 阶段1: 读帧头第二字节 + LEN + CMD（前5字节）
+            while (count < 5)
+            {
+                try { buf[count++] = (byte)_port.ReadByte(); }
+                catch { return null; }
+            }
+
+            if (buf[1] != _proto.Head2) return null;
+
+            // 阶段2: 读 DATA + CHECKSUM
+            int target = 5 + buf[2];
+            while (count < target)
+            {
+                try { buf[count++] = (byte)_port.ReadByte(); }
+                catch { return null; }
+            }
+
+            // 保存完整原始帧用于日志
+            _lastRawFrame = new byte[count];
+            Array.Copy(buf, _lastRawFrame, count);
+
+            _port.ReadTimeout = 1000;
             return _proto.ValidatePacket(buf, count);
         }
 
@@ -490,6 +594,24 @@ namespace USB_HUB_Meter_Host
             rtbDebug?.Clear();
         }
 
+        void AppendRaw(string msg)
+        {
+            if (rtbRaw == null) return;
+            if (InvokeRequired)
+            {
+                BeginInvoke(() => AppendRaw(msg));
+                return;
+            }
+            string line = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}";
+            rtbRaw.AppendText(line + "\n");
+            rtbRaw.ScrollToCaret();
+        }
+
+        void DoClearRaw(object? s, EventArgs e)
+        {
+            rtbRaw?.Clear();
+        }
+
         // ================================================================
         //  LED / HUB 控制
         // ================================================================
@@ -621,6 +743,13 @@ namespace USB_HUB_Meter_Host
                     progressBar.Maximum = max;
                     progressBar.Value = Math.Min(cur, max);
                 }
+            };
+            _fwUpdater.RawLog += msg =>
+            {
+                if (InvokeRequired)
+                    BeginInvoke(() => AppendRaw(msg));
+                else
+                    AppendRaw(msg);
             };
 
             bool ok = await Task.Run(() => _fwUpdater.UpdateAsync(_port, fwBin));

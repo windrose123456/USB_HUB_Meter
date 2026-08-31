@@ -71,7 +71,7 @@ class Protocol
 
         byte[] payload = new byte[dataLen];
         if (dataLen > 0)
-            Array.Copy(buf, 5, payload, 0, dataLen);
+            Array.Copy(buf, 4, payload, 0, dataLen);
         return payload;
     }
 

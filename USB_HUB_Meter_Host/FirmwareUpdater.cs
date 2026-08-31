@@ -17,10 +17,13 @@ class FirmwareUpdater
 
     public event Action<string>? LogMessage;
     public event Action<int, int>? ProgressChanged;
+    public event Action<string>? RawLog;
 
     public FirmwareUpdater(Protocol proto) => _proto = proto;
 
     public void Log(string msg) => LogMessage?.Invoke($"[{DateTime.Now:HH:mm:ss}] {msg}");
+
+    void LogRaw(string msg) => RawLog?.Invoke($"[{DateTime.Now:HH:mm:ss.fff}] {msg}");
 
     public void SetProgress(int current, int max) => ProgressChanged?.Invoke(current, max);
 
@@ -56,11 +59,16 @@ class FirmwareUpdater
             // 步骤1: 进入 IAP 模式
             Log("步骤 1/4: 进入 IAP 模式...");
             byte[] enterPkt = _proto.BuildPacket(_proto.Cmd.EnterIap, null);
+            LogRaw($"TX: {BitConverter.ToString(enterPkt)}");
             port.DiscardInBuffer();
             port.Write(enterPkt, 0, enterPkt.Length);
 
             // 尝试读取确认（MCU 可能已复位）
-            try { ReadResponseRaw(port, 2000); }
+            try {
+                var resp = ReadResponseRaw(port, 2000);
+                if (resp != null && resp.Length > 0)
+                    LogRaw($"RX: {BitConverter.ToString(resp)}");
+            }
             catch { /* MCU 复位后无响应是正常的 */ }
 
             Log("等待 MCU 复位进入 Bootloader...");
@@ -70,6 +78,8 @@ class FirmwareUpdater
 
             // 步骤2: 握手 Bootloader
             Log("步骤 2/4: 与 Bootloader 握手...");
+            byte[] blInfoPkt = _proto.BuildBlPacket(_proto.Bl.BlInfo, null);
+            LogRaw($"TX BL: {BitConverter.ToString(blInfoPkt)}");
             if (!SendBlCommand(port, _proto.Bl.BlInfo, null, 500))
             {
                 Log("错误: Bootloader 无响应!");

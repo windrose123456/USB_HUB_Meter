@@ -1,5 +1,14 @@
 #include "procotol.h"
+#include "STC8G_H_Delay.h"
 #include "STC8G_H_UART.h"
+
+#define IAP_IDLE    0
+#define IAP_READ    1
+#define IAP_WRITE   2
+#define IAP_ERASE   3
+
+#define FLAG_ADDR   0x1F00
+#define IAP_FLAG    0xA5
 
 /* ========== 协议帧解析 ========== */
 
@@ -90,6 +99,12 @@ void process_cmd(unsigned char cmd,
 {
     unsigned char resp[10];
 
+    /* 调试: 输出收到的命令码 */
+    TX1_write2buff('C'); TX1_write2buff(':');
+    TX1_write2buff('0' + (cmd >> 4));
+    TX1_write2buff('0' + (cmd & 0x0F));
+    TX1_write2buff('\r'); TX1_write2buff('\n');
+
     switch (cmd) {
 
     case CMD_GET_DATA: {
@@ -128,8 +143,49 @@ void process_cmd(unsigned char cmd,
     }
 
     case CMD_ENTER_IAP: {
-        /* IAP 暂未接入, 只回复确认 */
+        /* 调试: 直接发送字符确认进入 */
+        TX1_write2buff('I'); TX1_write2buff('A'); TX1_write2buff('P'); TX1_write2buff('\r'); TX1_write2buff('\n');
         send_resp(cmd, STS_OK, 0, 0);
+        delay_ms(50);
+
+        /* 擦除标志页 */
+        TX1_write2buff('E'); TX1_write2buff('\r'); TX1_write2buff('\n');
+		IAP_CONTR = 0x80;
+		IAP_CMD = IAP_ERASE;
+		IAP_ADDRH = (unsigned char)(FLAG_ADDR >> 8);
+		IAP_ADDRL = (unsigned char)(FLAG_ADDR & 0xFF);
+		IAP_TRIG = 0x5A; IAP_TRIG = 0xA5;
+		_nop_(); _nop_();
+		delay_ms(20);
+
+        /* 写入标志 */
+        TX1_write2buff('W'); TX1_write2buff('\r'); TX1_write2buff('\n');
+		IAP_CMD = IAP_WRITE;
+		IAP_DATA = IAP_FLAG;
+		IAP_TRIG = 0x5A; IAP_TRIG = 0xA5;
+		_nop_(); _nop_();
+		delay_ms(20);
+
+        /* 读取验证 */
+        IAP_CMD = IAP_READ;
+        IAP_ADDRH = (unsigned char)(FLAG_ADDR >> 8);
+        IAP_ADDRL = (unsigned char)(FLAG_ADDR & 0xFF);
+        IAP_TRIG = 0x5A; IAP_TRIG = 0xA5;
+        _nop_(); _nop_();
+        {
+            unsigned char verify = IAP_DATA;
+            TX1_write2buff('V'); TX1_write2buff(':');
+            TX1_write2buff('0' + (verify >> 4));
+            TX1_write2buff('0' + (verify & 0x0F));
+            TX1_write2buff('\r'); TX1_write2buff('\n');
+        }
+
+		IAP_CONTR = 0; IAP_CMD = 0;
+
+        /* 复位 */
+        TX1_write2buff('R'); TX1_write2buff('\r'); TX1_write2buff('\n');
+		delay_ms(50);
+		IAP_CONTR = 0xE0;  /* IAPEN=1, SWBS=1, SWRST=1 */
         break;
     }
 
