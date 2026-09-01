@@ -181,11 +181,12 @@ void process_cmd(unsigned char cmd,
         }
 
 		IAP_CONTR = 0; IAP_CMD = 0;
+		delay_ms(10);
 
-        /* 复位 */
-        TX1_write2buff('R'); TX1_write2buff('\r'); TX1_write2buff('\n');
-		delay_ms(50);
-		IAP_CONTR = 0xE0;  /* IAPEN=1, SWBS=1, SWRST=1 */
+        /* 关中断 + 直接跳转到 Bootloader (0x1C00) */
+        TX1_write2buff('J'); TX1_write2buff('\r'); TX1_write2buff('\n');
+		EA = 0;
+		((void (code *)())0x1C00)();
         break;
     }
 

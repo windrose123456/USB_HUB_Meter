@@ -1,0 +1,57 @@
+{
+  "Serial": {
+    "BaudRate": 115200,
+    "DataBits": 8,
+    "Parity": "None",
+    "StopBits": "One",
+    "ReadTimeout": 1000,
+    "WriteTimeout": 1000
+  },
+  "Protocol": {
+    "Head1": 170,
+    "Head2": 85,
+    "RespOffset": 128,
+    "Commands": {
+      "GetData": 1,
+      "SetLed": 2,
+      "ResetHub": 3,
+      "GetInfo": 4,
+      "EnterIap": 16
+    },
+    "Bootloader": {
+      "BlInfo": 5,
+      "BlErase": 1,
+      "BlWrite": 2,
+      "BlReboot": 4,
+      "BlAck": 6,
+      "BlNak": 21
+    }
+  },
+  "Ina226": {
+    "CurrentLSB": 0.0001,
+    "RShunt": 0.01,
+    "VoltageLSB": 1.25,
+    "ShuntVoltageLSB": 2.5,
+    "PowerMultiplier": 25
+  },
+  "Chart": {
+    "AutoRefreshInterval": 500,
+    "MaxPoints": 200,
+    "MaxPointsOptions": [
+      100,
+      200,
+      500,
+      1000
+    ]
+  },
+  "Debug": {
+    "LogEnabled": true,
+    "MaxLines": 500
+  },
+  "Window": {
+    "Width": 1072,
+    "Height": 822,
+    "X": 401,
+    "Y": 51
+  }
+}

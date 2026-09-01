@@ -37,11 +37,22 @@ namespace USB_HUB_Meter_Host
         // ===== LED 状态 =====
         bool _ledOn;
 
+        // ===== 日志文件 =====
+        readonly StreamWriter _logFile;
+
         public Form1()
         {
             _config = AppConfig.Load(ConfigPath);
             _proto = new Protocol(_config.Protocol);
             _maxPoints = _config.Chart.MaxPoints;
+
+            // 初始化日志文件
+            string logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "log");
+            Directory.CreateDirectory(logDir);
+            string logPath = Path.Combine(logDir, $"log_{DateTime.Now:yyyyMMdd_HHmmss}.txt");
+            _logFile = new StreamWriter(logPath, append: true, encoding: System.Text.Encoding.UTF8) { AutoFlush = true };
+            _logFile.WriteLine($"===== 会话开始 {DateTime.Now:yyyy-MM-dd HH:mm:ss} =====");
+            _logFile.WriteLine($"[LOG] 日志路径: {logPath}");
 
             InitializeComponent();
             ApplyTheme();
@@ -560,13 +571,15 @@ namespace USB_HUB_Meter_Host
         void AppendDebugLog(string msg, Color? color = null)
         {
             if (rtbDebug == null) return;
+            string line = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}";
+            _logFile.WriteLine($"[DBG] {line}");
             if (InvokeRequired)
             {
                 BeginInvoke(() => AppendDebugLog(msg, color));
                 return;
             }
             // 每行带时间戳
-            string line = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}";
+            rtbDebug.SelectionStart = rtbDebug.TextLength;
             rtbDebug.SelectionStart = rtbDebug.TextLength;
             rtbDebug.SelectionLength = 0;
             rtbDebug.SelectionColor = color ?? Theme.TextDim;
@@ -596,13 +609,14 @@ namespace USB_HUB_Meter_Host
 
         void AppendRaw(string msg)
         {
+            string line = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}";
+            _logFile.WriteLine($"[RAW] {line}");
             if (rtbRaw == null) return;
             if (InvokeRequired)
             {
                 BeginInvoke(() => AppendRaw(msg));
                 return;
             }
-            string line = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}";
             rtbRaw.AppendText(line + "\n");
             rtbRaw.ScrollToCaret();
         }
@@ -804,6 +818,7 @@ namespace USB_HUB_Meter_Host
 
         void AppendLog(string msg)
         {
+            _logFile.WriteLine($"[FW] {msg}");
             rtbLog.AppendText(msg + "\n");
             rtbLog.ScrollToCaret();
         }
@@ -843,6 +858,9 @@ namespace USB_HUB_Meter_Host
             _config.Chart.MaxPoints = _maxPoints;
             _config.Debug.LogEnabled = chkLogEnable.Checked;
             _config.Save(ConfigPath);
+
+            _logFile.WriteLine($"===== 会话结束 {DateTime.Now:yyyy-MM-dd HH:mm:ss} =====");
+            _logFile.Close();
 
             base.OnFormClosing(e);
         }

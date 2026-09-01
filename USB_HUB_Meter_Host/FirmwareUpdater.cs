@@ -73,6 +73,14 @@ class FirmwareUpdater
 
             Log("等待 MCU 复位进入 Bootloader...");
             await Task.Delay(1500, ct);
+
+            // 读取并记录等待期间收到的所有数据（如心跳字符）
+            if (port.BytesToRead > 0)
+            {
+                var pending = new byte[port.BytesToRead];
+                port.Read(pending, 0, pending.Length);
+                LogRaw($"RX during wait: {BitConverter.ToString(pending)}");
+            }
             port.DiscardInBuffer();
             SetProgress(1, progressMax);
 
@@ -156,20 +164,24 @@ class FirmwareUpdater
         port.DiscardInBuffer();
         port.Write(pkt, 0, pkt.Length);
 
+        var rxLog = new List<byte>();
         var sw = Stopwatch.StartNew();
         while (sw.ElapsedMilliseconds < timeoutMs)
         {
             if (port.BytesToRead > 0)
             {
                 byte resp = (byte)port.ReadByte();
-                if (resp == _proto.Bl.BlAck) return true;
-                if (resp == _proto.Bl.BlNak) return false;
+                rxLog.Add(resp);
+                if (resp == _proto.Bl.BlAck) { LogRaw($"RX BL: {BitConverter.ToString(rxLog.ToArray())}"); return true; }
+                if (resp == _proto.Bl.BlNak) { LogRaw($"RX BL: {BitConverter.ToString(rxLog.ToArray())}"); return false; }
             }
             else
             {
                 Thread.Sleep(5);
             }
         }
+        if (rxLog.Count > 0)
+            LogRaw($"RX BL (partial): {BitConverter.ToString(rxLog.ToArray())}");
         return false;
     }
 

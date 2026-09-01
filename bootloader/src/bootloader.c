@@ -1,195 +1,129 @@
 /************************************************************
- * bootloader.c ¡ª STC8G1K08A IAP Òýµ¼³ÌÐò
- * ±àÒëÄ¿±êµØÖ·: 0x1C00 (ISP/IAP ÇøÓò, Í¨¹ý STC-ISP ¹¤¾ßÅäÖÃ 1KB IAP)
- * Ð­Òé: ¼ò»¯µÄ×Ö½ÚÐ­Òé (ÎÞÖ¡Í·, ACK/NAK)
+ * bootloader.c - STC8G1K08A IAP Bootloader
+ * Target address: 0x1C00
+ * Minimal test version: only sends heartbeat '2E'
  ************************************************************/
-#include "STC8G.h"
+#include "config.h"
+#include "STC8G_H_UART.h"
 #include <intrins.h>
 
-/* ---- IAP ¼Ä´æÆ÷ ---- */
-//sfr IAP_DATA  = 0xC2;
-//sfr IAP_ADDRH = 0xC3;
-//sfr IAP_ADDRL = 0xC4;
-//sfr IAP_CMD   = 0xC5;
-//sfr IAP_TRIG  = 0xC6;
-//sfr IAP_CONTR = 0xC7;
+typedef struct
+{
+	u8	Mode;		//IOÄ£Ê½,  		GPIO_PullUp,GPIO_HighZ,GPIO_OUT_OD,GPIO_OUT_PP
+	u8	Pin;		//Òªï¿½ï¿½ï¿½ÃµÄ¶Ë¿ï¿½	
+} GPIO_InitTypeDef;
 
-#define IAP_IDLE    0
-#define IAP_READ    1
-#define IAP_WRITE   2
-#define IAP_ERASE   3
+#define	GPIO_Pin_0		0x01	//IOï¿½ï¿½ï¿½ï¿½ Px.0
+#define	GPIO_Pin_1		0x02	//IOï¿½ï¿½ï¿½ï¿½ Px.1
 
-/* ---- Flash ²¼¾Ö ---- */
-#define APP_ADDR    0x0000
-#define APP_SIZE    0x1C00    /* 7KB Ó¦ÓÃÇø */
-#define FLAG_ADDR   0x1F00    /* IAP ±êÖ¾´æ´¢Î»ÖÃ */
-#define IAP_FLAG    0xA5      /* ±êÖ¾Öµ */
+#define	GPIO_PullUp		0	//ï¿½ï¿½ï¿½ï¿½×¼Ë«ï¿½ï¿½ï¿½
+#define	GPIO_HighZ		1	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+#define	GPIO_OUT_OD		2	//ï¿½ï¿½Â©ï¿½ï¿½ï¿½
+#define	GPIO_OUT_PP		3	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
-/* ---- Bootloader ÃüÁî ---- */
-#define BL_INFO     0x05
-#define BL_ERASE    0x01
-#define BL_WRITE    0x02
-#define BL_REBOOT   0x04
-#define BL_ACK      0x06
-#define BL_NAK      0x15
+#define	GPIO_P3			3
 
-#define FOSC 11059200UL
-#define BAUD 115200UL
+#define	UART1_SW_P30_P31	0
 
-/* ---- ÑÓÊ± ---- */
-static void delay_ms(unsigned int ms) {
+#define  UART1_SW(Pin)				P_SW1 = (P_SW1 & 0x3F) | (Pin << 6)
+
+u8	GPIO_Inilize(u8 GPIO, GPIO_InitTypeDef *GPIOx)
+{
+	if(GPIOx->Mode > GPIO_OUT_PP)	return FAIL;	//ï¿½ï¿½ï¿½ï¿½
+
+	if(GPIO == GPIO_P3)
+	{
+		if(GPIOx->Mode == GPIO_PullUp)		P3M1 &= ~GPIOx->Pin,	P3M0 &= ~GPIOx->Pin;	 //ï¿½ï¿½ï¿½ï¿½×¼Ë«ï¿½ï¿½ï¿½
+		if(GPIOx->Mode == GPIO_HighZ)			P3M1 |=  GPIOx->Pin,	P3M0 &= ~GPIOx->Pin;	 //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		if(GPIOx->Mode == GPIO_OUT_OD)		P3M1 |=  GPIOx->Pin,	P3M0 |=  GPIOx->Pin;	 //ï¿½ï¿½Â©ï¿½ï¿½ï¿½
+		if(GPIOx->Mode == GPIO_OUT_PP)		P3M1 &= ~GPIOx->Pin,	P3M0 |=  GPIOx->Pin;	 //ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	}
+
+	return SUCCESS;	//ï¿½É¹ï¿½
+}
+
+//#define	Priority_0			0	//ä¸­æ–­ä¼˜å…ˆçº§ä¸º 0 çº§ï¼ˆæœ€ä½Žçº§ï¼‰
+//#define	Priority_1			1	//ä¸­æ–­ä¼˜å…ˆçº§ä¸º 1 çº§ï¼ˆè¾ƒä½Žçº§ï¼‰
+//#define	Priority_2			2	//ä¸­æ–­ä¼˜å…ˆçº§ä¸º 2 çº§ï¼ˆè¾ƒé«˜çº§ï¼‰
+#define	Priority_3			3	//ä¸­æ–­ä¼˜å…ˆçº§ä¸º 3 çº§ï¼ˆæœ€é«˜çº§ï¼‰
+//#define		PLVDH	0x40
+//#define		PADCH	0x20
+#define		PSH		0x10
+//#define		PT1H	0x08
+//#define		PX1H	0x04
+//#define		PT0H	0x02
+//#define		PX0H	0x01
+
+#define		UART1_Interrupt(n)	(n==0?(ES = 0):(ES = 1))			/* UART1ä¸­æ–­ä½¿èƒ½ */
+//ä¸²å£1ä¸­æ–­ä¼˜å…ˆçº§æŽ§åˆ¶
+#define 	UART1_Priority(n)			do{if(n == 0) IPH &= ~PSH, PS = 0; \
+																if(n == 1) IPH &= ~PSH, PS = 1; \
+																if(n == 2) IPH |= PSH, PS = 0; \
+																if(n == 3) IPH |= PSH, PS = 1; \
+															}while(0)
+
+u8 NVIC_UART1_Init(u8 State, u8 Priority)
+{
+//	if(State > ENABLE) return FAIL;
+//	if(Priority > Priority_3) return FAIL;
+	UART1_Interrupt(State);
+	UART1_Priority(Priority);
+	return SUCCESS;
+}
+
+/* ---- delay ---- */
+static void boot_delay_ms(unsigned int ms) {
     unsigned int i, j;
     for (i = 0; i < ms; i++)
         for (j = 0; j < 120; j++);
 }
 
-/* ---- UART (ÂÖÑ¯Ä£Ê½) ---- */
+/* ---- UART init (using STC8G library) ---- */
 static void uart_init(void) {
-    SCON = 0x50;            /* Mode 1, REN=1 */
-    AUXR |= 0x40;           /* Timer1 1TÄ£Ê½ */
-    TMOD &= 0x0F;
-    TH1 = (unsigned char)(256UL - (FOSC / 32UL / BAUD));
-    TL1 = TH1;
-    TR1 = 1;
+	//GPIO_InitTypeDef	GPIO_InitStructure;		//é”Ÿç»“æž„é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·é”Ÿ?
+	COMx_InitDefine		COMx_InitStructure;					//é”Ÿç»“æž„é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·é”Ÿ?
+	
+//	GPIO_InitStructure.Pin  = GPIO_Pin_0 | GPIO_Pin_1;
+//	GPIO_InitStructure.Mode = GPIO_PullUp;
+//	GPIO_Inilize(GPIO_P3,&GPIO_InitStructure);
+	
+	COMx_InitStructure.UART_Mode      = UART_8bit_BRTx;	//æ¨¡å¼, UART_ShiftRight,UART_8bit_BRTx,UART_9bit,UART_9bit_BRTx
+	COMx_InitStructure.UART_BRT_Use   = BRT_Timer1;			//é€‰é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·é”Ÿç»žå‡¤æ‹·é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·, BRT_Timer1, BRT_Timer2 (æ³¨é”Ÿæ–¤æ‹·: é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·2é”Ÿæ•™è®¹æ‹·ä½¿é”Ÿæ–¤æ‹·BRT_Timer2)
+	COMx_InitStructure.UART_BaudRate  = 115200ul;			//é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·, é”ŸèŠ‚æ†‹æ‹·ç³»ç»Ÿé”Ÿæ–¤æ‹·, é”Ÿæ–¤æ‹·æ—¶é”Ÿæ–¤æ‹·16ä½é”Ÿçš†è®¹æ‹·é”Ÿæ–¤æ‹·è£…æ¨¡å¼é”Ÿé“°åŒ¡æ‹·é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·2400~115200
+	COMx_InitStructure.UART_RxEnable  = ENABLE;				//é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·, ENABLEé”Ÿæ–¤æ‹·DISABLE
+	COMx_InitStructure.BaudRateDouble = DISABLE;			//é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·é”Ÿç»žåŠ æ†‹æ‹·, ENABLEé”Ÿæ–¤æ‹·DISABLE
+		
+	UART_Configuration(UART1, &COMx_InitStructure);		//é”Ÿæ–¤æ‹·å§‹é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·é”Ÿæ–¤æ‹·1 UART1,UART2,UART3,UART4
+	NVIC_UART1_Init(ENABLE,Priority_1);		//é”Ÿå«è®¹æ‹·ä½¿é”Ÿæ–¤æ‹·, ENABLE/DISABLE; é”Ÿæ–¤æ‹·é”Ÿé¥ºç¡·æ‹·(é”ŸæŽ¥ä½Žç¢‰æ‹·é”Ÿæ–¤æ‹·) Priority_0,Priority_1,Priority_2,Priority_3
+
+	UART1_SW(UART1_SW_P30_P31);	
 }
 
+/* ---- UART send (direct SBUF, no interrupt needed) ---- */
 static void uart_send(unsigned char c) {
     SBUF = c; while (!TI); TI = 0;
 }
 
-static unsigned char uart_recv(void) {
-    while (!RI); RI = 0;
-    return SBUF;
-}
-
-/* ´ø³¬Ê±½ÓÊÕ, ·µ»Ø 0=³¬Ê± */
-static unsigned char uart_recv_tout(unsigned int ms) {
-    unsigned int t;
-    for (t = 0; t < ms; t++) {
-        if (RI) { RI = 0; return SBUF; }
-        { unsigned int d; for (d = 0; d < 120; d++); }
-    }
-    return 0;
-}
-
-/* ---- IAP ²Ù×÷ ---- */
-static void iap_off(void) {
-    IAP_CONTR = 0; IAP_CMD = 0; IAP_TRIG = 0;
-}
-
-static unsigned char iap_read(unsigned int addr) {
-    unsigned char d;
-    IAP_CONTR = 0x80;
-    IAP_CMD = IAP_READ;
-    IAP_ADDRH = (unsigned char)(addr >> 8);
-    IAP_ADDRL = (unsigned char)(addr & 0xFF);
-    IAP_TRIG = 0x5A; IAP_TRIG = 0xA5;
-    _nop_(); _nop_();
-    d = IAP_DATA;
-    iap_off();
-    return d;
-}
-
-static void iap_write(unsigned int addr, unsigned char d) {
-    IAP_CONTR = 0x80;
-    IAP_CMD = IAP_WRITE;
-    IAP_ADDRH = (unsigned char)(addr >> 8);
-    IAP_ADDRL = (unsigned char)(addr & 0xFF);
-    IAP_DATA = d;
-    IAP_TRIG = 0x5A; IAP_TRIG = 0xA5;
-    _nop_(); _nop_();
-    iap_off();
-}
-
-static void iap_erase_page(unsigned int addr) {
-    IAP_CONTR = 0x80;
-    IAP_CMD = IAP_ERASE;
-    IAP_ADDRH = (unsigned char)(addr >> 8);
-    IAP_ADDRL = (unsigned char)(addr & 0xFF);
-    IAP_TRIG = 0x5A; IAP_TRIG = 0xA5;
-    _nop_(); _nop_();
-    iap_off();
-}
-
-/* Ð´ IAP ±êÖ¾ (Ð´ÔÚÅäÖÃÇø, ²»»áÓ°Ïì´úÂë) */
-static void set_flag(unsigned char val) {
-    iap_erase_page(FLAG_ADDR);
-    iap_write(FLAG_ADDR, val);
-}
-
-/* Ìø×ªµ½Ó¦ÓÃ³ÌÐò */
-static void jump_app(void) {
-    iap_off();
-    EA = 0;
-    /* ¸´Î»µ½Ó¦ÓÃÇø: SWBS=0, SWRST=1 */
-    IAP_CONTR = 0x20;
-}
-
-/* ---- Ö÷º¯Êý ---- */
+/* ---- main ---- */
 void main(void) {
-    unsigned char flag, cmd;
-    unsigned int addr;
-    unsigned char len, i, buf[32];
+    unsigned int cnt = 0;
 
-    SP = 0x7F;              /* ÊÖ¶¯ÉèÖÃÕ»¶¥ */
-    uart_init();
-    delay_ms(100);
+    //uart_init();
+    boot_delay_ms(100);
 
-    /* ¶ÁÈ¡ IAP ±êÖ¾ */
-    flag = iap_read(FLAG_ADDR);
+    /* Send 'B' once to confirm bootloader started */
+    TX1_write2buff('1');
+	TX1_write2buff('1');
+	//uart_send('B');
+	TX1_write2buff('2');
 
-    if (flag != IAP_FLAG) {
-        /* ¼ì²éÓ¦ÓÃÇøÊÇ·ñÓÐÓÐÐ§´úÂë */
-        if (iap_read(APP_ADDR) != 0xFF) {
-            jump_app();     /* Õý³£Ìø×ªµ½Ó¦ÓÃ */
-        }
-        /* Ó¦ÓÃÇøÎª¿Õ, Í£ÁôÔÚ bootloader */
-    }
-
-    /* ====== IAP Ä£Ê½ ====== */
     while (1) {
-        cmd = uart_recv_tout(30000); /* 30Ãë³¬Ê± */
-        if (cmd == 0) jump_app();     /* ³¬Ê±ÔòÖØÆô */
-
-        switch (cmd) {
-        case BL_INFO:
-            uart_send(BL_ACK);
-            uart_send('S'); uart_send('T'); uart_send('C');
-            uart_send('8'); uart_send('G');
-            uart_send(0x08); /* 8KB */
-            break;
-
-        case BL_ERASE:
-            addr = (unsigned int)uart_recv_tout(2000) << 8;
-            addr |= uart_recv_tout(2000);
-            if (addr < APP_SIZE)
-                iap_erase_page(addr);
-            uart_send(BL_ACK);
-            break;
-
-        case BL_WRITE:
-            addr = (unsigned int)uart_recv_tout(2000) << 8;
-            addr |= uart_recv_tout(2000);
-            len = uart_recv_tout(2000);
-            if (len > 32) len = 32;
-            for (i = 0; i < len; i++)
-                buf[i] = uart_recv_tout(2000);
-            for (i = 0; i < len; i++)
-                iap_write(addr + i, buf[i]);
-            uart_send(BL_ACK);
-            break;
-
-        case BL_REBOOT:
-            uart_send(BL_ACK);
-            delay_ms(20);
-            set_flag(0x00);     /* Çå³ý IAP ±êÖ¾ */
-            delay_ms(20);
-            jump_app();
-            break;
-
-        default:
-            uart_send(BL_NAK);
-            break;
+        boot_delay_ms(100);
+        cnt++;
+        if (cnt >= 5) {     /* ~500ms */
+            cnt = 0;
+			TX1_write2buff('3');
+            //uart_send(0x2E);    /* heartbeat '.' */
         }
     }
 }
