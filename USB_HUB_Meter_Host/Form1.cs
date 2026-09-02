@@ -15,7 +15,16 @@ namespace USB_HUB_Meter_Host
         // ===== 串口 =====
         SerialPort? _port;
         bool _connected;
-        byte[]? _lastRawFrame;  // ReadResponse中保存完整原始帧，用于LogRx
+        byte[]? _lastRawFrame;  // 保存完整原始帧，用于响应显示
+
+        // ===== 后台监听 =====
+        Thread? _serialMonitorThread;
+        CancellationTokenSource? _monitorCts;
+        readonly byte[] _rxBuffer = new byte[256];
+        int _rxBufferCount;
+        bool _waitingForCommandResponse;
+        readonly ManualResetEventSlim _responseReceived = new(false);
+        DateTime _lastRxTime;  // 最后收到字节的时间，用于超时检测
 
         // ===== INA226 数据缓冲 =====
         readonly List<double> _voltageData = new();
@@ -59,6 +68,7 @@ namespace USB_HUB_Meter_Host
             InitChart();
             InitTimer();
             ApplyConfigToControls();
+            LoadCmdInputs();
         }
 
         // ================================================================
@@ -223,6 +233,7 @@ namespace USB_HUB_Meter_Host
         {
             if (_connected)
             {
+                StopSerialMonitor();
                 _timer?.Stop();
                 _port?.Close();
                 _connected = false;
@@ -244,6 +255,7 @@ namespace USB_HUB_Meter_Host
                     };
                     _port.Open();
                     _connected = true;
+                    StartSerialMonitor();
                 }
                 catch (Exception ex)
                 {
@@ -285,152 +297,25 @@ namespace USB_HUB_Meter_Host
             if (!_connected || _port == null) return null;
 
             byte[] pkt = _proto.BuildPacket(cmd, data);
+            string cmdName = _proto.GetCmdName(pkt[3]);
 
-            LogTx(pkt);
+            // 显示发送数据
+            AppendTerminal(RxTxType.Tx, pkt, cmdName);
 
             _port.DiscardInBuffer();
             _port.Write(pkt, 0, pkt.Length);
 
-            // 读取所有返回数据（包括 printf 输出和协议响应）
-            var allBytes = ReadAllBytes(timeoutMs);
+            // 等待响应 (后台线程会捕获数据)
+            var resp = WaitForResponse(timeoutMs);
 
-            // 显示原始数据
-            if (allBytes.Length > 0)
-                AppendRaw(BitConverter.ToString(allBytes).Replace("-", " "));
-
-            // 尝试从原始数据中解析协议帧
-            _lastRawFrame = null;
-            var resp = TryParseFrame(allBytes);
-            if (_lastRawFrame != null)
-                LogRx(_lastRawFrame, pkt[3]);
+            // 显示响应数据
+            if (resp != null && _lastRawFrame != null)
+            {
+                string respCmdName = _proto.GetCmdName(_lastRawFrame[3]);
+                AppendTerminal(RxTxType.Rx, _lastRawFrame, respCmdName);
+            }
 
             return resp;
-        }
-
-        /// <summary>
-        /// 读取所有可用字节（包括非协议数据如 printf 输出）
-        /// </summary>
-        byte[] ReadAllBytes(int timeoutMs)
-        {
-            if (_port == null) return Array.Empty<byte>();
-
-            var buf = new byte[256];
-            int count = 0;
-            var sw = Stopwatch.StartNew();
-            bool gotFirst = false;
-
-            while (sw.ElapsedMilliseconds < timeoutMs)
-            {
-                try
-                {
-                    if (_port.BytesToRead > 0)
-                    {
-                        buf[count++] = (byte)_port.ReadByte();
-                        gotFirst = true;
-                    }
-                    else if (gotFirst)
-                    {
-                        // 收到过数据后，短等待看还有没有后续数据
-                        Thread.Sleep(5);
-                        if (_port.BytesToRead == 0) break;
-                    }
-                    else
-                    {
-                        Thread.Sleep(1);
-                    }
-                }
-                catch { break; }
-            }
-
-            return buf[..count];
-        }
-
-        /// <summary>
-        /// 从字节数组中尝试解析协议帧
-        /// </summary>
-        byte[]? TryParseFrame(byte[] raw)
-        {
-            if (raw.Length < 5) return null;
-
-            // 找帧头
-            for (int i = 0; i <= raw.Length - 5; i++)
-            {
-                if (raw[i] != _proto.Head1 || raw[i + 1] != _proto.Head2)
-                    continue;
-
-                int dataLen = raw[i + 2];
-                int frameLen = 5 + dataLen;
-                if (i + frameLen > raw.Length) continue;
-
-                var frame = raw[i..(i + frameLen)];
-                var payload = _proto.ValidatePacket(frame, frameLen);
-                if (payload != null)
-                {
-                    _lastRawFrame = frame;
-                    return payload;
-                }
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// 状态机式接收：检测帧头 → 读LEN → 读数据 → 校验
-        /// 帧头后200ms超时，防止卡死
-        /// </summary>
-        byte[]? ReadResponse(int timeoutMs)
-        {
-            if (_port == null || !_port.IsOpen) return null;
-
-            var buf = new byte[64];
-            int count = 0;
-            var sw = Stopwatch.StartNew();
-
-            // 阶段0: 等待帧头 AA
-            _port.ReadTimeout = timeoutMs;
-            while (sw.ElapsedMilliseconds < timeoutMs)
-            {
-                try
-                {
-                    int b = _port.ReadByte();
-                    if (b == _proto.Head1)
-                    {
-                        buf[0] = (byte)b;
-                        count = 1;
-                        break;
-                    }
-                }
-                catch (TimeoutException) { return null; }
-                catch { return null; }
-            }
-
-            if (count == 0) return null;
-
-            // 帧头后用较短超时读后续字节
-            _port.ReadTimeout = 200;
-
-            // 阶段1: 读帧头第二字节 + LEN + CMD（前5字节）
-            while (count < 5)
-            {
-                try { buf[count++] = (byte)_port.ReadByte(); }
-                catch { return null; }
-            }
-
-            if (buf[1] != _proto.Head2) return null;
-
-            // 阶段2: 读 DATA + CHECKSUM
-            int target = 5 + buf[2];
-            while (count < target)
-            {
-                try { buf[count++] = (byte)_port.ReadByte(); }
-                catch { return null; }
-            }
-
-            // 保存完整原始帧用于日志
-            _lastRawFrame = new byte[count];
-            Array.Copy(buf, _lastRawFrame, count);
-
-            _port.ReadTimeout = 1000;
-            return _proto.ValidatePacket(buf, count);
         }
 
         // ================================================================
@@ -547,42 +432,48 @@ namespace USB_HUB_Meter_Host
         void Timer_Tick(object? s, EventArgs e) => ReadINA226();
 
         // ================================================================
-        //  调试日志 (RX/TX)
+        //  串口终端 (统一显示)
         // ================================================================
 
-        void LogTx(byte[] data)
+        /// <summary>
+        /// 数据方向枚举
+        /// </summary>
+        enum RxTxType { Tx, Rx }
+
+        /// <summary>
+        /// 统一终端显示方法
+        /// </summary>
+        void AppendTerminal(RxTxType type, byte[] data, string? cmdName = null)
         {
             if (chkLogEnable == null || !chkLogEnable.Checked) return;
-            string hex = BitConverter.ToString(data).Replace("-", " ");
-            string cmdName = _proto.GetCmdName(data[3]);
-            AppendDebugLog($"TX  {cmdName}  {hex}", Color.FromArgb(46, 204, 113));
-        }
 
-        void LogRx(byte[] data, byte reqCmd)
-        {
-            if (chkLogEnable == null || !chkLogEnable.Checked) return;
+            string timestamp = $"[{DateTime.Now:HH:mm:ss.fff}]";
             string hex = BitConverter.ToString(data).Replace("-", " ");
-            byte respCmd = data.Length > 3 ? data[3] : (byte)0;
-            string cmdName = _proto.GetCmdName(respCmd);
-            string status = data.Length > 4 ? (data[4] == 0 ? "OK" : "ERR") : "";
-            AppendDebugLog($"RX  {cmdName}  {status}  {hex}", Color.FromArgb(100, 149, 237));
-        }
+            string label = type == RxTxType.Tx ? "TX" : "RX";
 
-        void AppendDebugLog(string msg, Color? color = null)
-        {
-            if (rtbDebug == null) return;
-            string line = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}";
-            _logFile.WriteLine($"[DBG] {line}");
+            // 构建显示行
+            string line = cmdName != null
+                ? $"{timestamp} {label}  {cmdName}  {hex}"
+                : $"{timestamp} {label}  {hex}";
+
+            // 颜色: 绿色TX, 蓝色RX
+            Color color = type == RxTxType.Tx
+                ? Color.FromArgb(46, 204, 113)    // 绿色
+                : Color.FromArgb(100, 149, 237);  // 蓝色
+
+            // 写入日志文件
+            _logFile.WriteLine($"[{label}] {line}");
+
+            // 更新UI (线程安全)
             if (InvokeRequired)
             {
-                BeginInvoke(() => AppendDebugLog(msg, color));
+                BeginInvoke(() => AppendTerminal(type, data, cmdName));
                 return;
             }
-            // 每行带时间戳
-            rtbDebug.SelectionStart = rtbDebug.TextLength;
+
             rtbDebug.SelectionStart = rtbDebug.TextLength;
             rtbDebug.SelectionLength = 0;
-            rtbDebug.SelectionColor = color ?? Theme.TextDim;
+            rtbDebug.SelectionColor = color;
             rtbDebug.AppendText(line + "\n");
             rtbDebug.SelectionColor = Theme.TextDim;
             rtbDebug.ScrollToCaret();
@@ -596,10 +487,197 @@ namespace USB_HUB_Meter_Host
             }
         }
 
+        // ================================================================
+        //  后台串口监听
+        // ================================================================
+
+        /// <summary>
+        /// 启动后台串口监听线程
+        /// </summary>
+        void StartSerialMonitor()
+        {
+            StopSerialMonitor();
+
+            _monitorCts = new CancellationTokenSource();
+            _lastRxTime = DateTime.Now;
+            _rxBufferCount = 0;
+            _serialMonitorThread = new Thread(SerialMonitorLoop)
+            {
+                IsBackground = true,
+                Name = "SerialMonitor"
+            };
+            _serialMonitorThread.Start(_monitorCts.Token);
+        }
+
+        /// <summary>
+        /// 停止后台串口监听线程
+        /// </summary>
+        void StopSerialMonitor()
+        {
+            _monitorCts?.Cancel();
+            if (_serialMonitorThread != null && _serialMonitorThread.IsAlive)
+            {
+                _serialMonitorThread.Join(500);
+            }
+            FlushRxBuffer();  // 停止时刷新残留数据
+            _monitorCts?.Dispose();
+            _monitorCts = null;
+            _serialMonitorThread = null;
+        }
+
+        /// <summary>
+        /// 后台监听循环 - 持续读取串口数据
+        /// </summary>
+        void SerialMonitorLoop(object? state)
+        {
+            var ct = (CancellationToken)state!;
+
+            while (!ct.IsCancellationRequested && _connected && _port?.IsOpen == true)
+            {
+                try
+                {
+                    if (_port.BytesToRead > 0)
+                    {
+                        byte b = (byte)_port.ReadByte();
+                        _lastRxTime = DateTime.Now;
+                        ProcessReceivedByte(b);
+                    }
+                    else
+                    {
+                        // 检查缓冲区中的残留数据 (超时100ms，给 bootloader 响应足够时间)
+                        if (_rxBufferCount > 0 && (DateTime.Now - _lastRxTime).TotalMilliseconds > 100)
+                        {
+                            FlushRxBuffer();
+                        }
+                        Thread.Sleep(1);
+                    }
+                }
+                catch (Exception)
+                {
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 刷新缓冲区中的残留数据 - 显示非协议帧数据
+        /// </summary>
+        void FlushRxBuffer()
+        {
+            if (_rxBufferCount == 0) return;
+
+            // 如果正在等待命令响应，先通知
+            if (_waitingForCommandResponse && _lastRawFrame != null)
+            {
+                _responseReceived.Set();
+            }
+            else
+            {
+                // 显示残留数据作为原始RX
+                byte[] data = new byte[_rxBufferCount];
+                Array.Copy(_rxBuffer, data, _rxBufferCount);
+                AppendTerminal(RxTxType.Rx, data);
+            }
+
+            _rxBufferCount = 0;
+        }
+
+        /// <summary>
+        /// 处理接收到的字节 - 尝试解析协议帧
+        /// </summary>
+        void ProcessReceivedByte(byte b)
+        {
+            // 添加到缓冲区
+            if (_rxBufferCount >= _rxBuffer.Length)
+            {
+                // 缓冲区满，先刷新显示
+                FlushRxBuffer();
+            }
+
+            _rxBuffer[_rxBufferCount++] = b;
+            _lastRxTime = DateTime.Now;
+
+            // 只有当缓冲区有足够数据且以 AA 55 开头时才尝试解析
+            // 否则等待超时后由 FlushRxBuffer 显示
+            if (_rxBufferCount >= 5 && _rxBuffer[0] == _proto.Head1 && _rxBuffer[1] == _proto.Head2)
+            {
+                int dataLen = _rxBuffer[2];
+                int frameLen = 5 + dataLen;
+
+                if (frameLen > _rxBuffer.Length)
+                {
+                    // 数据长度异常，刷新显示
+                    FlushRxBuffer();
+                    return;
+                }
+
+                if (_rxBufferCount >= frameLen)
+                {
+                    // 有足够数据，尝试验证
+                    var payload = _proto.ValidatePacket(_rxBuffer, _rxBufferCount);
+                    if (payload != null)
+                    {
+                        // 保存完整帧
+                        _lastRawFrame = new byte[frameLen];
+                        Array.Copy(_rxBuffer, _lastRawFrame, frameLen);
+
+                        // 移除已处理的数据
+                        if (_rxBufferCount > frameLen)
+                        {
+                            Array.Copy(_rxBuffer, frameLen, _rxBuffer, 0, _rxBufferCount - frameLen);
+                            _rxBufferCount -= frameLen;
+                        }
+                        else
+                        {
+                            _rxBufferCount = 0;
+                        }
+
+                        // 如果是等待命令响应，通知等待线程
+                        if (_waitingForCommandResponse)
+                        {
+                            _responseReceived.Set();
+                        }
+                        else
+                        {
+                            // 主动上报数据，直接显示
+                            string cmdName = _proto.GetCmdName(_lastRawFrame[3]);
+                            AppendTerminal(RxTxType.Rx, _lastRawFrame, cmdName);
+                        }
+                    }
+                    else
+                    {
+                        // 校验失败，刷新显示
+                        FlushRxBuffer();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 等待命令响应 (用于SendCmd)
+        /// </summary>
+        byte[]? WaitForResponse(int timeoutMs)
+        {
+            _responseReceived.Reset();
+            _rxBufferCount = 0;
+            _waitingForCommandResponse = true;
+
+            bool gotResponse = _responseReceived.Wait(timeoutMs);
+
+            _waitingForCommandResponse = false;
+
+            if (gotResponse && _lastRawFrame != null)
+            {
+                return _proto.ValidatePacket(_lastRawFrame, _lastRawFrame.Length);
+            }
+
+            return null;
+        }
+
         void DoToggleDebugPanel(object? s, EventArgs e)
         {
             pnlDebug.Visible = !pnlDebug.Visible;
-            btnDebugExpand.Text = pnlDebug.Visible ? "调试日志 ▾" : "调试日志 ▸";
+            btnDebugExpand.Text = pnlDebug.Visible ? "串口终端 ▾" : "串口终端 ▸";
         }
 
         void DoClearDebugLog(object? s, EventArgs e)
@@ -607,23 +685,91 @@ namespace USB_HUB_Meter_Host
             rtbDebug?.Clear();
         }
 
-        void AppendRaw(string msg)
+        /// <summary>
+        /// 根据索引发送指令
+        /// </summary>
+        void DoSendCmdByIndex(object? s, EventArgs e)
         {
-            string line = $"[{DateTime.Now:HH:mm:ss.fff}] {msg}";
-            _logFile.WriteLine($"[RAW] {line}");
-            if (rtbRaw == null) return;
-            if (InvokeRequired)
+            if (s is not Button btn || btn.Tag is not int idx) return;
+            if (idx < 0 || idx >= txtCmdInputs.Length) return;
+
+            if (!_connected || _port == null)
             {
-                BeginInvoke(() => AppendRaw(msg));
+                MessageBox.Show("请先连接设备", "提示", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            rtbRaw.AppendText(line + "\n");
-            rtbRaw.ScrollToCaret();
+
+            string input = txtCmdInputs[idx].Text.Trim();
+            if (string.IsNullOrEmpty(input)) return;
+
+            // 移除空格和其他分隔符
+            input = input.Replace(" ", "").Replace("-", "").Replace("0x", "").Replace("0X", "");
+
+            // 校验HEX字符
+            if (input.Length % 2 != 0 || !System.Text.RegularExpressions.Regex.IsMatch(input, @"^[0-9A-Fa-f]+$"))
+            {
+                MessageBox.Show("请输入有效的HEX数据 (如: AA 55 01 01 01)", "格式错误",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                byte[] data = Convert.FromHexString(input);
+                AppendTerminal(RxTxType.Tx, data, $"CMD{idx + 1}");
+
+                _port.DiscardInBuffer();
+                _port.Write(data, 0, data.Length);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"发送失败: {ex.Message}", "错误",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
-        void DoClearRaw(object? s, EventArgs e)
+        /// <summary>
+        /// 输入框回车发送
+        /// </summary>
+        void TxtCmdInput_KeyDown(object? s, KeyEventArgs e)
         {
-            rtbRaw?.Clear();
+            if (e.KeyCode != Keys.Enter) return;
+            if (s is not TextBox txt || txt.Tag is not int idx) return;
+
+            // 触发对应发送按钮的点击
+            if (idx >= 0 && idx < btnSendCmds.Length)
+            {
+                DoSendCmdByIndex(btnSendCmds[idx], EventArgs.Empty);
+            }
+
+            e.Handled = true;
+            e.SuppressKeyPress = true;
+        }
+
+        /// <summary>
+        /// 加载指令到输入框
+        /// </summary>
+        void LoadCmdInputs()
+        {
+            var cmds = _config.QuickCommand.Commands;
+            for (int i = 0; i < txtCmdInputs.Length; i++)
+            {
+                if (i < cmds.Length)
+                    txtCmdInputs[i].Text = cmds[i];
+                else
+                    txtCmdInputs[i].Text = "";
+            }
+        }
+
+        /// <summary>
+        /// 保存指令从输入框到配置
+        /// </summary>
+        void SaveCmdInputs()
+        {
+            var cmds = new string[txtCmdInputs.Length];
+            for (int i = 0; i < txtCmdInputs.Length; i++)
+                cmds[i] = txtCmdInputs[i].Text.Trim().ToUpper();
+            _config.QuickCommand.Commands = cmds;
         }
 
         // ================================================================
@@ -740,6 +886,9 @@ namespace USB_HUB_Meter_Host
             rtbLog.Clear();
             progressBar.Value = 0;
 
+            // 暂停后台监听 (固件更新器直接操作串口)
+            StopSerialMonitor();
+
             _fwUpdater = new FirmwareUpdater(_proto);
             _fwUpdater.LogMessage += msg =>
             {
@@ -760,13 +909,31 @@ namespace USB_HUB_Meter_Host
             };
             _fwUpdater.RawLog += msg =>
             {
-                if (InvokeRequired)
-                    BeginInvoke(() => AppendRaw(msg));
-                else
-                    AppendRaw(msg);
+                // 解析固件更新日志中的 TX/RX 标记
+                RxTxType type = msg.Contains("TX") ? RxTxType.Tx : RxTxType.Rx;
+                // 提取 HEX 数据部分 (去掉时间戳和 TX/RX 标记)
+                int hexStart = msg.IndexOf("AA");
+                if (hexStart < 0) hexStart = msg.IndexOf("06"); // BL_ACK
+                if (hexStart >= 0)
+                {
+                    string hexStr = msg[hexStart..].Replace(" ", "");
+                    try
+                    {
+                        byte[] bytes = Convert.FromHexString(hexStr);
+                        if (InvokeRequired)
+                            BeginInvoke(() => AppendTerminal(type, bytes, "FW"));
+                        else
+                            AppendTerminal(type, bytes, "FW");
+                    }
+                    catch { /* 忽略解析失败 */ }
+                }
             };
 
             bool ok = await Task.Run(() => _fwUpdater.UpdateAsync(_port, fwBin));
+
+            // 恢复后台监听
+            if (_connected && _port?.IsOpen == true)
+                StartSerialMonitor();
 
             btnUpdate.Enabled = true;
             btnBrowse.Enabled = true;
@@ -846,6 +1013,7 @@ namespace USB_HUB_Meter_Host
 
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
+            StopSerialMonitor();
             _timer?.Stop();
             if (_port?.IsOpen == true) _port.Close();
 
@@ -857,6 +1025,10 @@ namespace USB_HUB_Meter_Host
             _config.Chart.AutoRefreshInterval = _timer?.Interval ?? 500;
             _config.Chart.MaxPoints = _maxPoints;
             _config.Debug.LogEnabled = chkLogEnable.Checked;
+
+            // 保存指令输入框内容
+            SaveCmdInputs();
+
             _config.Save(ConfigPath);
 
             _logFile.WriteLine($"===== 会话结束 {DateTime.Now:yyyy-MM-dd HH:mm:ss} =====");

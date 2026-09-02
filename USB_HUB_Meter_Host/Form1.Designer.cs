@@ -76,7 +76,7 @@ namespace USB_HUB_Meter_Host
             btnFwExpand = MakeToolBtn("固件更新 ▸", 720, DoToggleFirmwarePanel);
             btnFwExpand.Size = new Size(100, 28);
 
-            btnDebugExpand = MakeToolBtn("调试日志 ▸", 830, DoToggleDebugPanel);
+            btnDebugExpand = MakeToolBtn("串口终端 ▸", 830, DoToggleDebugPanel);
             btnDebugExpand.Size = new Size(100, 28);
 
             pnlToolbar.Controls.AddRange(new Control[] {
@@ -285,7 +285,7 @@ namespace USB_HUB_Meter_Host
                 btnUpdate, progressBar, lblFwStatus, rtbLog
             });
 
-            // ===== 调试日志面板 =====
+            // ===== 串口终端面板 =====
             pnlDebug = new Panel
             {
                 Dock = DockStyle.Bottom,
@@ -297,45 +297,32 @@ namespace USB_HUB_Meter_Host
 
             var lblDebugTitle = new Label
             {
-                Text = "RX/TX 调试日志",
+                Text = "串口终端",
                 Location = new Point(12, 6),
                 AutoSize = true,
                 ForeColor = Theme.TextMain,
                 Font = Theme.FontTitle,
             };
 
-            btnClearLog = MakeToolBtn("清空", 175, DoClearDebugLog);
-            btnClearLog.Location = new Point(375, 2);
-            btnClearLog.Size = new Size(70, 28);
-
             chkLogEnable = new CheckBox
             {
                 Text = "启用日志",
                 AutoSize = true,
-                Location = new Point(235, 6),
+                Location = new Point(120, 6),
                 ForeColor = Theme.TextMain,
                 Font = Theme.FontNormal,
                 Checked = true,
             };
 
-            var lblRawTitle = new Label
-            {
-                Text = "原始数据 (Raw RX)",
-                Location = new Point(520, 6),
-                AutoSize = true,
-                ForeColor = Theme.TextMain,
-                Font = Theme.FontTitle,
-            };
+            btnClearLog = MakeToolBtn("清空", 220, DoClearDebugLog);
+            btnClearLog.Location = new Point(220, 2);
+            btnClearLog.Size = new Size(70, 28);
 
-            btnClearRaw = MakeToolBtn("清空", 175, DoClearRaw);
-            btnClearRaw.Location = new Point(755, 2);
-            btnClearRaw.Size = new Size(70, 28);
-
-            // 调试日志 (左侧 3/4)
+            // 终端显示框 (左侧 3/4)
             rtbDebug = new RichTextBox
             {
                 Location = new Point(12, 30),
-                Size = new Size(490, 138),
+                Size = new Size(636, 138),
                 ReadOnly = true,
                 BackColor = Color.FromArgb(18, 18, 26),
                 ForeColor = Theme.TextDim,
@@ -344,23 +331,47 @@ namespace USB_HUB_Meter_Host
                 ScrollBars = RichTextBoxScrollBars.Vertical,
             };
 
-            // 原始数据 (右侧 1/4)
-            rtbRaw = new RichTextBox
+            // 右侧指令输入区域 (6个输入框+发送按钮，竖排)
+            txtCmdInputs = new TextBox[6];
+            btnSendCmds = new Button[6];
+
+            for (int i = 0; i < 6; i++)
             {
-                Location = new Point(512, 30),
-                Size = new Size(356, 138),
-                ReadOnly = true,
-                BackColor = Color.FromArgb(18, 18, 26),
-                ForeColor = Color.FromArgb(200, 200, 100),
-                Font = Theme.FontLog,
-                BorderStyle = BorderStyle.FixedSingle,
-                ScrollBars = RichTextBoxScrollBars.Vertical,
-            };
+                int y = 30 + i * 25;  // 从y=30开始，每个高25px
+
+                txtCmdInputs[i] = new TextBox
+                {
+                    Location = new Point(658, y),
+                    Size = new Size(120, 23),
+                    BackColor = Theme.BgInput,
+                    ForeColor = Theme.TextMain,
+                    BorderStyle = BorderStyle.FixedSingle,
+                    Font = Theme.FontLog,
+                    CharacterCasing = CharacterCasing.Upper,
+                    Tag = i,
+                };
+                txtCmdInputs[i].KeyDown += TxtCmdInput_KeyDown;
+
+                btnSendCmds[i] = new Button
+                {
+                    Text = "发送",
+                    Location = new Point(784, y),
+                    Size = new Size(56, 23),
+                    FlatStyle = FlatStyle.Flat,
+                    BackColor = Theme.Connected,
+                    ForeColor = Color.White,
+                    Font = Theme.FontSmall,
+                    Cursor = Cursors.Hand,
+                    Tag = i,
+                };
+                btnSendCmds[i].Click += DoSendCmdByIndex;
+            }
 
             pnlDebug.Controls.AddRange(new Control[] {
-                lblDebugTitle, btnClearLog, chkLogEnable, rtbDebug,
-                lblRawTitle, btnClearRaw, rtbRaw
+                lblDebugTitle, chkLogEnable, btnClearLog, rtbDebug
             });
+            pnlDebug.Controls.AddRange(txtCmdInputs);
+            pnlDebug.Controls.AddRange(btnSendCmds);
 
             // ===== 主布局 (Dock 顺序: Top先填充, Bottom后填充, Fill填剩余) =====
             // Dock 排列顺序: Bottom控件先加入, Top后加入, Fill最后
@@ -461,10 +472,12 @@ namespace USB_HUB_Meter_Host
         private Label lblFwStatus;
         private RichTextBox rtbLog;
 
-        // 调试日志
+        // 串口终端
         private Panel pnlDebug;
-        private Button btnDebugExpand, btnClearLog, btnClearRaw;
+        private Button btnDebugExpand, btnClearLog;
         private CheckBox chkLogEnable;
-        private RichTextBox rtbDebug, rtbRaw;
+        private RichTextBox rtbDebug;
+        private TextBox[] txtCmdInputs = new TextBox[0];
+        private Button[] btnSendCmds = new Button[0];
     }
 }

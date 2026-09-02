@@ -52,3 +52,6 @@ Thumbs.db
 .DS_Store
 *.log
 *.cfg
+
+# 无需上传目录
+Merged_Firmware/Host

@@ -1,70 +1,197 @@
 /************************************************************
- * bootloader.c - STC8G1K08A 最简测试
- * 验证 UART 通信: 发送 'B' + 心跳 '.'
+ * bootloader.c - STC8G1K08A Bootloader
+ * UART 轮询模式，实现固件接收和 Flash 写入
+ * 编译到 0x1C00 (ISP/IAP 区域)
  ************************************************************/
 #include "STC8H.h"
+#include <intrins.h>
 
-#define		PSH		0x10
+/* ---- Flash 布局 ---- */
+#define APP_ADDR    0x0000
+#define APP_SIZE    0x1C00    /* 7KB 应用区 */
+#define FLAG_ADDR   0x1F00    /* IAP 标志存储位置 */
+#define IAP_FLAG    0xA5      /* 标志值 */
 
-///* ---- SFR ---- */
-//sfr IE    = 0xA8;
-//sfr TCON  = 0x88;
-//sfr SCON  = 0x98;
-//sfr SBUF  = 0x99;
-//sfr TMOD  = 0x89;
-//sfr TL1   = 0x8B;
-//sfr TH1   = 0x8D;
-//sfr AUXR  = 0x8E;
+/* ---- Bootloader 命令 ---- */
+#define BL_INFO     0x05
+#define BL_ERASE    0x01
+#define BL_WRITE    0x02
+#define BL_REBOOT   0x04
+#define BL_ACK      0x06
+#define BL_NAK      0x15
 
-//sbit TR1  = TCON^6;   /* Timer1 运行控制 */
-//sbit TI   = SCON^1;   /* 发送完成标志 */
+/* ---- IAP 命令 ---- */
+#define IAP_IDLE   0x00
+#define IAP_READ   0x01
+#define IAP_WRITE  0x02
+#define IAP_ERASE  0x03
 
+/* ---- 时钟 ---- */
+#define FOSC 11059200UL
+#define BAUD 115200UL
+
+/* ---- 延时 ---- */
+static void delay_ms(unsigned int ms) {
+    unsigned int i, j;
+    for (i = 0; i < ms; i++)
+        for (j = 0; j < 120; j++);
+}
+
+/* ---- UART 轮询模式 ---- */
+static void uart_init(void) {
+    SCON = 0x50;            /* Mode 1, REN=1 */
+    AUXR |= 0x40;           /* Timer1 1T模式 */
+    TMOD &= 0x0F;
+    TH1 = 0xFF;
+    TL1 = 0xE8;
+    TR1 = 1;
+}
+
+static void uart_send(unsigned char c) {
+    SBUF = c;
+    while (!TI);
+    TI = 0;
+}
+
+static unsigned char uart_recv(void) {
+    while (!RI);
+    RI = 0;
+    return SBUF;
+}
+
+static unsigned char uart_recv_tout(unsigned int ms) {
+    unsigned int t;
+    for (t = 0; t < ms; t++) {
+        if (RI) { RI = 0; return SBUF; }
+        { unsigned int d; for (d = 0; d < 120; d++); }
+    }
+    return 0;
+}
+
+/* ---- IAP 操作 ---- */
+static void iap_off(void) {
+    IAP_CONTR = 0; IAP_CMD = 0; IAP_TRIG = 0;
+}
+
+static unsigned char iap_read(unsigned int addr) {
+    unsigned char d;
+    IAP_CONTR = 0x80;
+    IAP_CMD = IAP_READ;
+    IAP_ADDRH = (unsigned char)(addr >> 8);
+    IAP_ADDRL = (unsigned char)(addr & 0xFF);
+    IAP_TRIG = 0x5A; IAP_TRIG = 0xA5;
+    _nop_(); _nop_();
+    d = IAP_DATA;
+    iap_off();
+    return d;
+}
+
+static void iap_write(unsigned int addr, unsigned char d) {
+    IAP_CONTR = 0x80;
+    IAP_CMD = IAP_WRITE;
+    IAP_ADDRH = (unsigned char)(addr >> 8);
+    IAP_ADDRL = (unsigned char)(addr & 0xFF);
+    IAP_DATA = d;
+    IAP_TRIG = 0x5A; IAP_TRIG = 0xA5;
+    _nop_(); _nop_();
+    iap_off();
+}
+
+static void iap_erase_page(unsigned int addr) {
+    IAP_CONTR = 0x80;
+    IAP_CMD = IAP_ERASE;
+    IAP_ADDRH = (unsigned char)(addr >> 8);
+    IAP_ADDRL = (unsigned char)(addr & 0xFF);
+    IAP_TRIG = 0x5A; IAP_TRIG = 0xA5;
+    _nop_(); _nop_();
+    iap_off();
+}
+
+static void set_flag(unsigned char val) {
+    iap_erase_page(FLAG_ADDR);
+    iap_write(FLAG_ADDR, val);
+}
+
+static void jump_app(void) {
+    iap_off();
+    EA = 0;
+    IAP_CONTR = 0x20;  /* SWBS=0, SWRST=1 */
+}
+
+/* ---- 主函数 ---- */
 void main(void) {
+    unsigned char flag, cmd;
+    unsigned int addr;
+    unsigned char len, i, buf[32];
+
+    SP = 0x7F;
     IE = 0;             /* 关中断 */
-	
-	P3M1 &= ~0x03;
-    P3M0 &= ~0x03;
+    uart_init();
+    delay_ms(100);
 
-    /* --- 3. UART1 模式: 8位可变波特率, 允许接收 --- */
-    SCON = (SCON & 0x3F) | 0x40;   // 模式1 (8位UART)
-    REN = 1;                        // 允许接收
+    /* 读取 IAP 标志 */
+    flag = iap_read(FLAG_ADDR);
 
-    /* --- 4. Timer1 波特率发生器 (1T, 115200) --- */
-    TR1 = 0;                        // 先停止Timer1
-    AUXR &= ~0x01;                  // S1 BRT 使用 Timer1
-    TMOD &= ~(1 << 6);             // Timer1 = 定时器模式
-    TMOD &= ~0x30;                  // Timer1 = 16位自动重装
-    AUXR |= (1 << 6);              // Timer1 = 1T模式
-	
-//	j = (MAIN_Fosc / 4) / 115200ul;
-//	j = 65536UL - j;
-//	TH1 = (u8)(j>>8);
-//	TL1 = (u8)j;
-	TH1 = 0xFF;
-	TL1 = 0xE8;
-	ET1 = 0;                        // 禁止Timer1中断
-    TMOD &= ~0x40;                  // 定时模式(非计数)
-    INTCLKO &= ~0x02;              // 禁止T1时钟输出
-    TR1 = 1;                        // 启动Timer1
-	/* --- 5. NVIC: UART1中断使能, 优先级1 --- */
-    ES = 1;
-    IPH &= ~PSH;
-    PS = 1;
+    if (flag != IAP_FLAG) {
+        /* 检查应用区是否有有效代码 */
+        if (iap_read(APP_ADDR) != 0xFF) {
+            jump_app();     /* 正常跳转到应用 */
+        }
+        /* 应用区为空, 停留在 bootloader */
+    }
 
-    /* --- 6. UART1 引脚切换: P3.0(RXD) / P3.1(TXD) --- */
-    P_SW1 = (P_SW1 & 0x3F) | (0 << 6);
+    /* 发送启动标识 */
+    uart_send('B');
+    uart_send('O');
+    uart_send('O');
+    uart_send('T');
+    uart_send('\r');
+    uart_send('\n');
 
-    /* 延时等待稳定 */
-    { unsigned int i; for (i = 0; i < 50000; i++); }
-
-    /* 发送 'B' 确认启动 */
-    SBUF = 'B'; while (!TI); TI = 0;
-
-    /* 心跳循环: 每~500ms 发送 '.' */
+    /* ====== IAP 模式 ====== */
     while (1) {
-        { unsigned int j; for (j = 0; j < 50000; j++); }
-        SBUF = 0x2E;
-        while (!TI);
-        TI = 0;
+        cmd = uart_recv_tout(30000);  /* 30秒超时 */
+        //if (cmd == 0) jump_app();      /* 超时跳转App */
+
+        switch (cmd) {
+        case BL_INFO:
+            uart_send(BL_ACK);
+            uart_send('S'); uart_send('T'); uart_send('C');
+            uart_send('8'); uart_send('G');
+            uart_send(0x08);  /* 8KB */
+            break;
+
+        case BL_ERASE:
+            addr = (unsigned int)uart_recv_tout(2000) << 8;
+            addr |= uart_recv_tout(2000);
+            if (addr < APP_SIZE)
+                iap_erase_page(addr);
+            uart_send(BL_ACK);
+            break;
+
+        case BL_WRITE:
+            addr = (unsigned int)uart_recv_tout(2000) << 8;
+            addr |= uart_recv_tout(2000);
+            len = uart_recv_tout(2000);
+            if (len > 32) len = 32;
+            for (i = 0; i < len; i++)
+                buf[i] = uart_recv_tout(2000);
+            for (i = 0; i < len; i++)
+                iap_write(addr + i, buf[i]);
+            uart_send(BL_ACK);
+            break;
+
+        case BL_REBOOT:
+            uart_send(BL_ACK);
+            delay_ms(20);
+            set_flag(0x00);  /* 清除 IAP 标志 */
+            delay_ms(20);
+            jump_app();
+            break;
+
+        default:
+            uart_send(BL_NAK);
+            break;
+        }
     }
 }

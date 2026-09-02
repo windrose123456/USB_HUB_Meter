@@ -17,8 +17,11 @@
 Flash 布局 (8KB):
 ┌─────────────────┐ 0x1FFF
 │ ISP/IAP 区域    │
-│  0x1C00-0x1EFF  │ Bootloader (768B)
+│  0x1C00-0x1EFF  │ Bootloader 代码 (768B)
 │  0x1F00-0x1FFF  │ 配置/标志区 (256B)
+│    0x1F00       │   IAP_FLAG   (1B) - 0xA5=进入IAP模式
+│    0x1F01       │   APP_VALID  (1B) - 0xAA=App完整有效
+│    0x1F02-0x1F03│   APP_CRC    (2B) - App区CRC16校验
 ├─────────────────┤ 0x1BFF
 │ 应用程序区域    │
 │  0x0000-0x1BFF  │ App Code (7KB)
@@ -72,10 +75,12 @@ CMD	名称	方向	DATA	说明
 发送: [CMD][参数...]
 接收: [ACK=0x06 / NAK=0x15][响应数据...]
 
-CMD_INFO    (0x05): 发 → 无参 → 收 [ACK][芯片信息]
+CMD_INFO    (0x05): 发 → 无参 → 收 [ACK][芯片信息][版本号]
 CMD_ERASE   (0x01): 发 [AH][AL] → 收 [ACK]
 CMD_WRITE   (0x02): 发 [AH][AL][LEN][DATA...] → 收 [ACK]
+CMD_VERIFY  (0x03): 发 [CRC_H][CRC_L] → 收 [ACK/NAK]  (新增: 验证App CRC16)
 CMD_REBOOT  (0x04): 发 → 无参 → 收 [ACK] 然后复位
+CMD_GET_FLAG(0x06): 发 → 无参 → 收 [ACK][IAP_FLAG][APP_VALID]  (新增: 读取标志)
 
 三、硬件接线
 
@@ -294,7 +299,53 @@ void main(void) {
 }
 
 
-4.2 Application — main.c
+4.1.1 Bootloader 设计说明
+
+启动判断逻辑:
+MCU复位 → 读取IAP_FLAG(0x1F00)
+  ├─ == 0xA5 → 进入IAP模式（等待命令）
+  └─ != 0xA5 → 读取APP_VALID(0x1F01)
+      ├─ == 0xAA → 验证CRC16
+      │   ├─ CRC正确 → 跳转App
+      │   └─ CRC失败 → 进入IAP模式（App损坏）
+      └─ != 0xAA → 检查App首字节
+          ├─ != 0xFF → 进入IAP模式（App不完整）
+          └─ == 0xFF → 进入IAP模式（App为空）
+
+UART模式: 轮询（空间紧张，轮询比中断节省约50-100字节）
+
+CRC16校验:
+- 多项式: 0x8005 (CRC-16/IBM)
+- 初始值: 0x0000
+- 计算范围: 0x0000-0x1BFF（整个App区）
+- 存储位置: 0x1F02-0x1F03
+- 上位机在BL_WRITE完成后计算并发送
+
+App完整性标志:
+- APP_VALID(0x1F01) = 0xAA 仅在BL_VERIFY验证通过后设置
+- 如果烧写中途断电，APP_VALID未设置，下次启动进入IAP模式
+- BL_REBOOT时清除IAP_FLAG，APP_VALID保持
+
+新增命令:
+BL_VERIFY  (0x03): 发 [CRC_H][CRC_L] → 收 [ACK/NAK]
+  - 上位机计算App区CRC16并发送
+  - Bootloader验证后设置APP_VALID=0xAA
+  - 成功回复ACK，失败回复NAK
+
+BL_GET_FLAG(0x06): 发 → 无参 → 收 [ACK][IAP_FLAG][APP_VALID]
+  - 读取标志位状态，用于调试
+
+看门狗: Bootloader不启用（避免擦写期间复位）
+掉电保护: 擦写操作由STC8G硬件保证原子性，最坏情况APP_VALID未设置
+超时处理: IAP模式30秒超时→跳转App（尝试运行）
+
+完整固件更新时序:
+PC                      MCU(Boot)
+ │  BL_INFO(0x05)    →  [ACK][芯片信息][版本号]
+ │  BL_ERASE ×N      →  [ACK] × N
+ │  BL_WRITE ×N      →  [ACK] × N
+ │  BL_VERIFY        →  [ACK/NAK]  (验证CRC，设置APP_VALID)
+ │  BL_REBOOT(0x04)  →  [ACK] → 复位到App
 
 /************************************************************
  * main.c — STC8G1K08A 应用程序
@@ -1342,11 +1393,12 @@ PC                    MCU(App)              MCU(Boot)
  │                       [写标志→复位]
  │                  ──────┤
  │  等待 1.5s              │
- │  BL_INFO(0x05)   →     │  [ACK + 芯片信息]
- │  BL_ERASE ×14    →     │  [ACK] × 14
- │  BL_WRITE ×14    →     │  [ACK] × 14
+ │  BL_INFO(0x05)   →     │  [ACK + 芯片信息 + 版本号]
+ │  BL_ERASE ×N     →     │  [ACK] × N
+ │  BL_WRITE ×N     →     │  [ACK] × N
+ │  BL_VERIFY       →     │  [ACK/NAK] (验证CRC16，设置APP_VALID)
  │  BL_REBOOT(0x04) →     │  [ACK]
- │                       │  [清标志→跳转APP]
+ │                       │  [清IAP_FLAG→跳转APP]
  │                  ←─────┤
  │  设备重新枚举          新固件开始运行
 
@@ -1357,3 +1409,58 @@ PC                    MCU(App)              MCU(Boot)
 2.INA226 校准：默认按 10mΩ 采样电阻、3.2A 量程配置，如需修改请调整 REG_CAL 写入值和 C# 端 _currentLsb
 3.波特率：两端必须一致 (115200)，STC-ISP 中确认 IRC 频率为 11.0592 MHz
 4.CH634X 时序：复位低电平持续 20ms 已足够，如芯片手册有更长要求请调整 delay_ms
+
+七、Bootloader 设计要点
+
+7.1 烧写失败恢复机制
+
+问题: 烧写过程中断电或通信中断，App不完整，需要自动恢复到IAP模式
+
+解决方案:
+1. 使用 APP_VALID 标志 (0x1F01): 仅在 BL_VERIFY 验证 CRC16 通过后设置为 0xAA
+2. Bootloader 启动时检查:
+   - IAP_FLAG == 0xA5 → 进入 IAP 模式
+   - APP_VALID == 0xAA 且 CRC16 正确 → 跳转 App
+   - APP_VALID != 0xAA → 进入 IAP 模式（App 不完整或为空）
+
+效果:
+- 正常更新: 擦写 → 验证CRC → 设置APP_VALID → 复位 → Bootloader检查通过 → 运行App
+- 中途断电: 擦写中断 → APP_VALID未设置 → 下次启动进入IAP模式
+- 写入错误: CRC验证失败 → APP_VALID未设置 → 保持IAP模式
+
+7.2 CRC16 校验
+
+算法: CRC-16/IBM (多项式 0x8005, 初始值 0x0000)
+范围: 0x0000-0x1BFF (整个 App 区域, 7KB)
+存储: 0x1F02-0x1F03 (Big Endian)
+
+上位机流程:
+1. 读取编译后的 .hex/.bin 文件
+2. 填充到 7KB (不足部分补 0xFF)
+3. 计算 CRC16
+4. 在 BL_WRITE 完成后发送 BL_VERIFY [CRC_H][CRC_L]
+5. 收到 ACK 表示验证通过，APP_VALID 已设置
+
+7.3 UART 模式选择
+
+选择轮询模式，原因:
+- Bootloader 仅 1KB，空间紧张
+- 轮询代码比中断小约 50-100 字节
+- Bootloader 不需要后台接收，轮询足够
+- 中断需要 ISR 入口和栈空间
+
+7.4 看门狗与掉电保护
+
+- Bootloader 不启用看门狗（避免擦写期间复位）
+- App 可选择启用看门狗
+- 掉电保护由 STC8G 硬件保证（擦写操作原子性）
+- 最坏情况: App 部分写入，APP_VALID 未设置，下次启动自动进入 IAP
+
+7.5 代码大小预算 (1KB = 1024 字节)
+
+- 启动判断 + IAP 操作: ~300 字节
+- UART 轮询驱动: ~100 字节
+- 协议处理 (INFO/ERASE/WRITE/VERIFY/REBOOT): ~400 字节
+- CRC16 计算: ~100 字节
+- 延时 + 杂项: ~100 字节
+- 总计: ~1000 字节 (刚好在 1KB 预算内)

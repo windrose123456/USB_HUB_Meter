@@ -5,6 +5,7 @@
 
 //包含本头文件后,不用另外再包含"REG51.H"
 
+sfr         SP          =           0x81;
 sfr         PCON        =           0x87;
 sfr         TCON        =           0x88;
 sbit        TF1         =           TCON^7;

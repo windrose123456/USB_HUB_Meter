@@ -14,6 +14,7 @@ class AppConfig
     public Ina226Config Ina226 { get; set; } = new();
     public ChartConfig Chart { get; set; } = new();
     public DebugConfig Debug { get; set; } = new();
+    public QuickCommandConfig QuickCommand { get; set; } = new();
     public WindowConfig Window { get; set; } = new();
 
     static readonly JsonSerializerOptions JsonOpts = new()
@@ -130,6 +131,15 @@ class DebugConfig
 
     /// <summary>日志最大行数</summary>
     public int MaxLines { get; set; } = 500;
+}
+
+/// <summary>
+/// 快捷指令配置
+/// </summary>
+class QuickCommandConfig
+{
+    /// <summary>快捷指令列表 (最多6个)</summary>
+    public string[] Commands { get; set; } = Array.Empty<string>();
 }
 
 class WindowConfig
