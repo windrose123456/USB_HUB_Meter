@@ -1,9 +1,9 @@
-BL51 BANKED LINKER/LOCATER V6.22.4.0                                                    09/01/2026  18:11:30  PAGE 1
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                    09/02/2026  17:42:50  PAGE 1
 
 
 BL51 BANKED LINKER/LOCATER V6.22.4.0, INVOKED BY:
-C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\BIN\BL51.EXE .\Objects\bootloader.obj, .\Objects\STC8G_H_UART.obj TO .\Objects\
->> Bootloader PRINT (.\Listings\Bootloader.m51) RAMSIZE (256) CODE (0X1C00-0X1FFF)
+C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\BIN\BL51.EXE .\Objects\bootloader.obj TO .\Objects\Bootloader PRINT (.\Listings
+>> \Bootloader.m51) RAMSIZE (256) CODE (0X1C00-0X1FFF)
 
 
 MEMORY MODEL: SMALL
@@ -11,18 +11,8 @@ MEMORY MODEL: SMALL
 
 INPUT MODULES INCLUDED:
   .\Objects\bootloader.obj (BOOTLOADER)
-  .\Objects\STC8G_H_UART.obj (STC8G_H_UART)
   C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C_STARTUP)
-  C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C?CLDPTR)
-  C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C?CLDOPTR)
-  C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C?ULDIV)
-  C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C?ULCMP)
-  C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C?ULSHR)
-  C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C?LLDOPTR0)
-  C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C?LLDIDATA0)
-  C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C?LLDXDATA0)
-  C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C?LLDPDATA0)
-  C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C?LLDCODE0)
+  C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C?SLCMP)
 
 
 LINK MAP OF MODULE:  .\Objects\Bootloader (BOOTLOADER)
@@ -33,49 +23,28 @@ LINK MAP OF MODULE:  .\Objects\Bootloader (BOOTLOADER)
 
             * * * * * * *   D A T A   M E M O R Y   * * * * * * *
             REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
-            DATA    0008H     0009H     UNIT         ?DT?UART_INIT?BOOTLOADER
-            DATA    0011H     0007H     UNIT         ?DT?_UART_CONFIGURATION?STC8G_H_UART
-            DATA    0018H     0005H     UNIT         ?DT?STC8G_H_UART
-            DATA    001DH     0002H     UNIT         _DATA_GROUP_
-            IDATA   001FH     0001H     UNIT         ?STACK
-
-            * * * * * * *  X D A T A   M E M O R Y  * * * * * * *
-            XDATA   0000H     0080H     UNIT         ?XD?STC8G_H_UART
+            DATA    0008H     0002H     UNIT         _DATA_GROUP_
+            IDATA   000AH     0001H     UNIT         ?STACK
 
             * * * * * * *   C O D E   M E M O R Y   * * * * * * *
             CODE    0000H     0003H     ABSOLUTE     
                     0003H     1BFDH                  *** GAP ***
-            CODE    1C00H     019EH     UNIT         ?C?LIB_CODE
-            CODE    1D9EH     0122H     UNIT         ?PR?_UART_CONFIGURATION?STC8G_H_UART
-            CODE    1EC0H     0055H     UNIT         ?PR?_GPIO_INILIZE?BOOTLOADER
-            CODE    1F15H     003EH     UNIT         ?PR?MAIN?BOOTLOADER
-            CODE    1F53H     002DH     UNIT         ?PR?UART_INIT?BOOTLOADER
-            CODE    1F80H     002CH     UNIT         ?PR?_NVIC_UART1_INIT?BOOTLOADER
-            CODE    1FACH     0020H     UNIT         ?PR?_BOOT_DELAY_MS?BOOTLOADER
-            CODE    1FCCH     000CH     UNIT         ?C_C51STARTUP
-            CODE    1FD8H     0008H     UNIT         ?PR?_UART_SEND?BOOTLOADER
+            CODE    1C00H     0091H     UNIT         ?PR?MAIN?BOOTLOADER
+            CODE    1C91H     0016H     UNIT         ?C?LIB_CODE
+            CODE    1CA7H     000CH     UNIT         ?C_C51STARTUP
 
 
 
 OVERLAY MAP OF MODULE:   .\Objects\Bootloader (BOOTLOADER)
 
-BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  09/01/2026  18:11:30  PAGE 2
 
-
-
-SEGMENT                                        DATA_GROUP 
-  +--> CALLED SEGMENT                        START    LENGTH
-------------------------------------------------------------
-?C_C51STARTUP                                -----    -----
+SEGMENT                          DATA_GROUP 
+  +--> CALLED SEGMENT          START    LENGTH
+----------------------------------------------
+?C_C51STARTUP                  -----    -----
   +--> ?PR?MAIN?BOOTLOADER
 
-?PR?MAIN?BOOTLOADER                          001DH    0002H
-  +--> ?PR?_BOOT_DELAY_MS?BOOTLOADER
-
-
-
-UNRESOLVED EXTERNAL SYMBOLS:
-   _TX1_WRITE2BUFF
+?PR?MAIN?BOOTLOADER            0008H    0002H
 
 
 
@@ -90,119 +59,18 @@ SYMBOL TABLE OF MODULE:  .\Objects\Bootloader (BOOTLOADER)
   D:00B1H         PUBLIC        P3M1
   D:00A0H         PUBLIC        P2
   D:00B0H         PUBLIC        P3
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  09/02/2026  17:42:50  PAGE 2
+
+
   D:00A2H         PUBLIC        P_SW1
   D:00A8H         PUBLIC        IE
+  D:008FH         PUBLIC        INTCLKO
   B:00A8H.4       PUBLIC        ES
   D:00B8H         PUBLIC        IP
   B:0098H.1       PUBLIC        TI
   B:00B8H.4       PUBLIC        PS
-  C:1F15H         PUBLIC        main
+  C:1C00H         PUBLIC        main
   D:0099H         PUBLIC        SBUF
-  D:0098H         PUBLIC        SCON
-  D:0088H         PUBLIC        TCON
-  C:1FD8H         SYMBOL        _uart_send
-  C:1F53H         SYMBOL        uart_init
-  D:00B7H         PUBLIC        IPH
-  C:1EC0H         PUBLIC        _GPIO_Inilize
-  C:1FACH         SYMBOL        _boot_delay_ms
-  C:1F80H         PUBLIC        _NVIC_UART1_Init
-  -------         PROC          _GPIO_INILIZE
-  D:0007H         SYMBOL        GPIO
-  D:0001H         SYMBOL        GPIOx
-  C:1EC0H         LINE#         30
-  C:1EC0H         LINE#         31
-  C:1EC0H         LINE#         32
-  C:1ECCH         LINE#         34
-  C:1ED1H         LINE#         35
-  C:1ED1H         LINE#         36
-  C:1EDFH         LINE#         37
-  C:1EF0H         LINE#         38
-  C:1F01H         LINE#         39
-  C:1F12H         LINE#         40
-BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  09/01/2026  18:11:30  PAGE 3
-
-
-  C:1F12H         LINE#         42
-  C:1F14H         LINE#         43
-  -------         ENDPROC       _GPIO_INILIZE
-  -------         PROC          _NVIC_UART1_INIT
-  D:0007H         SYMBOL        State
-  D:0005H         SYMBOL        Priority
-  C:1F80H         LINE#         65
-  C:1F80H         LINE#         66
-  C:1F80H         LINE#         69
-  C:1F89H         LINE#         70
-  C:1FA9H         LINE#         71
-  C:1FABH         LINE#         72
-  -------         ENDPROC       _NVIC_UART1_INIT
-  -------         PROC          _BOOT_DELAY_MS
-  D:0006H         SYMBOL        ms
-  -------         DO            
-  D:0004H         SYMBOL        i
-  D:0002H         SYMBOL        j
-  -------         ENDDO         
-  C:1FACH         LINE#         75
-  C:1FACH         LINE#         77
-  C:1FB6H         LINE#         78
-  C:1FCBH         LINE#         79
-  -------         ENDPROC       _BOOT_DELAY_MS
-  -------         PROC          UART_INIT
-  -------         DO            
-  D:0008H         SYMBOL        COMx_InitStructure
-  -------         ENDDO         
-  C:1F53H         LINE#         82
-  C:1F53H         LINE#         90
-  C:1F56H         LINE#         91
-  C:1F59H         LINE#         92
-  C:1F65H         LINE#         93
-  C:1F68H         LINE#         94
-  C:1F6BH         LINE#         96
-  C:1F75H         LINE#         97
-  C:1F7CH         LINE#         99
-  C:1F7FH         LINE#         100
-  -------         ENDPROC       UART_INIT
-  -------         PROC          _UART_SEND
-  D:0007H         SYMBOL        c
-  C:1FD8H         LINE#         103
-  C:1FD8H         LINE#         104
-  C:1FDFH         LINE#         105
-  -------         ENDPROC       _UART_SEND
-  -------         PROC          MAIN
-  -------         DO            
-  D:001DH         SYMBOL        cnt
-  -------         ENDDO         
-  C:1F15H         LINE#         108
-  C:1F15H         LINE#         109
-  C:1F1AH         LINE#         112
-  C:1F20H         LINE#         115
-  C:1F25H         LINE#         116
-  C:1F2AH         LINE#         118
-  C:1F2FH         LINE#         120
-  C:1F2FH         LINE#         121
-BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  09/01/2026  18:11:30  PAGE 4
-
-
-  C:1F36H         LINE#         122
-  C:1F3EH         LINE#         123
-  C:1F47H         LINE#         124
-  C:1F4CH         LINE#         125
-  C:1F51H         LINE#         127
-  C:1F51H         LINE#         128
-  -------         ENDPROC       MAIN
-  -------         ENDMOD        BOOTLOADER
-
-  -------         MODULE        STC8G_H_UART
-  C:0000H         SYMBOL        _ICE_DUMMY_
-  C:1D9EH         PUBLIC        _UART_Configuration
-  D:00A0H         PUBLIC        P2
-  D:00B0H         PUBLIC        P3
-  D:00A8H         PUBLIC        IE
-  D:0018H         PUBLIC        COM1
-  D:008FH         PUBLIC        INTCLKO
-  D:00B8H         PUBLIC        IP
-  X:0000H         PUBLIC        RX1_Buffer
-  X:0040H         PUBLIC        TX1_Buffer
-  D:0087H         PUBLIC        PCON
   D:0098H         PUBLIC        SCON
   D:0089H         PUBLIC        TMOD
   D:0088H         PUBLIC        TCON
@@ -211,143 +79,53 @@ SYMBOL TABLE OF MODULE:  .\Objects\Bootloader (BOOTLOADER)
   D:008DH         PUBLIC        TH1
   D:008BH         PUBLIC        TL1
   B:0088H.6       PUBLIC        TR1
+  D:00B7H         PUBLIC        IPH
   B:0098H.4       PUBLIC        REN
-  -------         PROC          _UART_CONFIGURATION
-  D:0007H         SYMBOL        UARTx
-  D:0011H         SYMBOL        COMx
+  -------         PROC          MAIN
   -------         DO            
-  D:0006H         SYMBOL        i
-  D:0014H         SYMBOL        j
+  D:0008H         SYMBOL        i
   -------         ENDDO         
-  C:1D9EH         LINE#         33
-  C:1DA4H         LINE#         34
-  C:1DA4H         LINE#         44
-  C:1DACH         LINE#         45
-  C:1DACH         LINE#         46
-  C:1DAEH         LINE#         47
-  C:1DB0H         LINE#         48
-  C:1DB2H         LINE#         49
-  C:1DB4H         LINE#         50
-  C:1DB6H         LINE#         52
-  C:1DC1H         LINE#         53
-  C:1DCFH         LINE#         55
-  C:1DE0H         LINE#         56
-  C:1DEDH         LINE#         57
-  C:1DEDH         LINE#         58
-  C:1E06H         LINE#         59
-  C:1E1DH         LINE#         60
-  C:1E33H         LINE#         61
-  C:1E43H         LINE#         62
-  C:1E43H         LINE#         63
-BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  09/01/2026  18:11:30  PAGE 5
+  -------         DO            
+  D:0008H         SYMBOL        j
+  -------         ENDDO         
+  C:1C00H         LINE#         22
+  C:1C00H         LINE#         23
+  C:1C03H         LINE#         25
+  C:1C06H         LINE#         26
+  C:1C09H         LINE#         29
+  C:1C11H         LINE#         30
+  C:1C13H         LINE#         33
+  C:1C15H         LINE#         34
+  C:1C18H         LINE#         35
+  C:1C1BH         LINE#         36
+  C:1C1EH         LINE#         37
+  C:1C21H         LINE#         43
+  C:1C24H         LINE#         44
+  C:1C27H         LINE#         45
+  C:1C29H         LINE#         46
+  C:1C2CH         LINE#         47
+  C:1C2FH         LINE#         48
+  C:1C31H         LINE#         50
+  C:1C33H         LINE#         51
+  C:1C36H         LINE#         52
+  C:1C38H         LINE#         55
+  C:1C3BH         LINE#         58
+  C:1C5DH         LINE#         61
+  C:1C65H         LINE#         64
+  C:1C65H         LINE#         65
+  C:1C87H         LINE#         66
+  C:1C8AH         LINE#         67
+  C:1C8DH         LINE#         68
+  C:1C8FH         LINE#         69
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        BOOTLOADER
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  09/02/2026  17:42:50  PAGE 3
 
 
-  C:1E45H         LINE#         64
-  C:1E48H         LINE#         65
-  C:1E4BH         LINE#         66
-  C:1E4EH         LINE#         67
-  C:1E51H         LINE#         68
-  C:1E60H         LINE#         69
-  C:1E63H         LINE#         70
-  C:1E65H         LINE#         71
-  C:1E68H         LINE#         72
-  C:1E6BH         LINE#         73
-  C:1E6DH         LINE#         74
-  C:1E6FH         LINE#         75
-  C:1E72H         LINE#         76
-  C:1E72H         LINE#         77
-  C:1E7EH         LINE#         78
-  C:1E7EH         LINE#         79
-  C:1E8CH         LINE#         80
-  C:1E8FH         LINE#         81
-  C:1E91H         LINE#         82
-  C:1E95H         LINE#         83
-  C:1E95H         LINE#         84
-  C:1EA3H         LINE#         85
-  C:1EA6H         LINE#         86
-  C:1EA6H         LINE#         87
-  C:1EBAH         LINE#         89
-  C:1EBDH         LINE#         90
-  C:1EBDH         LINE#         93
-  C:1EBFH         LINE#         94
-  -------         ENDPROC       _UART_CONFIGURATION
-  -------         ENDMOD        STC8G_H_UART
 
-  -------         MODULE        ?C?CLDPTR
-  C:1C00H         PUBLIC        ?C?CLDPTR
-  -------         ENDMOD        ?C?CLDPTR
+  -------         MODULE        ?C?SLCMP
+  C:1C91H         PUBLIC        ?C?SLCMP
+  -------         ENDMOD        ?C?SLCMP
 
-  -------         MODULE        ?C?CLDOPTR
-  C:1C19H         PUBLIC        ?C?CLDOPTR
-  -------         ENDMOD        ?C?CLDOPTR
-
-  -------         MODULE        ?C?ULDIV
-  C:1C82H         PUBLIC        ?C?ULDIV
-  -------         ENDMOD        ?C?ULDIV
-
-  -------         MODULE        ?C?ULCMP
-  C:1D14H         PUBLIC        ?C?ULCMP
-  -------         ENDMOD        ?C?ULCMP
-
-  -------         MODULE        ?C?ULSHR
-  C:1D25H         PUBLIC        ?C?ULSHR
-  -------         ENDMOD        ?C?ULSHR
-
-  -------         MODULE        ?C?LLDOPTR0
-  C:1D38H         PUBLIC        ?C?LLDOPTR0
-  -------         ENDMOD        ?C?LLDOPTR0
-
-  -------         MODULE        ?C?LLDIDATA0
-  C:1D68H         PUBLIC        ?C?LLDIDATA0
-BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  09/01/2026  18:11:30  PAGE 6
-
-
-  -------         ENDMOD        ?C?LLDIDATA0
-
-  -------         MODULE        ?C?LLDXDATA0
-  C:1D75H         PUBLIC        ?C?LLDXDATA0
-  -------         ENDMOD        ?C?LLDXDATA0
-
-  -------         MODULE        ?C?LLDPDATA0
-  C:1D81H         PUBLIC        ?C?LLDPDATA0
-  -------         ENDMOD        ?C?LLDPDATA0
-
-  -------         MODULE        ?C?LLDCODE0
-  C:1D8EH         PUBLIC        ?C?LLDCODE0
-  -------         ENDMOD        ?C?LLDCODE0
-
-*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
-    SEGMENT: ?PR?_GPIO_INILIZE?BOOTLOADER
-
-*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
-    SEGMENT: ?PR?UART_INIT?BOOTLOADER
-
-*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
-    SEGMENT: ?PR?_UART_SEND?BOOTLOADER
-
-*** WARNING L1: UNRESOLVED EXTERNAL SYMBOL
-    SYMBOL:  _TX1_WRITE2BUFF
-    MODULE:  .\Objects\bootloader.obj (BOOTLOADER)
-
-*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
-    SYMBOL:  _TX1_WRITE2BUFF
-    MODULE:  .\Objects\bootloader.obj (BOOTLOADER)
-    ADDRESS: 1F23H
-
-*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
-    SYMBOL:  _TX1_WRITE2BUFF
-    MODULE:  .\Objects\bootloader.obj (BOOTLOADER)
-    ADDRESS: 1F28H
-
-*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
-    SYMBOL:  _TX1_WRITE2BUFF
-    MODULE:  .\Objects\bootloader.obj (BOOTLOADER)
-    ADDRESS: 1F2DH
-
-*** WARNING L2: REFERENCE MADE TO UNRESOLVED EXTERNAL
-    SYMBOL:  _TX1_WRITE2BUFF
-    MODULE:  .\Objects\bootloader.obj (BOOTLOADER)
-    ADDRESS: 1F4FH
-
-Program Size: data=32.0 xdata=128 code=995
-LINK/LOCATE RUN COMPLETE.  8 WARNING(S),  0 ERROR(S)
+Program Size: data=11.0 xdata=0 code=182
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)

@@ -16,6 +16,8 @@
 //                               本地变量声明
 //========================================================================
 
+extern u8 get_reg_buf[8];
+
 #ifdef UART1
 COMx_Define	COM1;
 u8	xdata TX1_Buffer[COM_TX1_Lenth];	//发送缓冲
@@ -66,7 +68,9 @@ u8 UART_Configuration(u8 UARTx, COMx_InitDefine *COMx)
 		for(i=0; i<COM_TX1_Lenth; i++)	TX1_Buffer[i] = 0;
 		for(i=0; i<COM_RX1_Lenth; i++)	RX1_Buffer[i] = 0;
 
+		get_reg_buf[0] = (SCON & 0x3f) | COMx->UART_Mode;
 		SCON = (SCON & 0x3f) | COMx->UART_Mode;	//模式设置
+		
 		if((COMx->UART_Mode == UART_9bit_BRTx) || (COMx->UART_Mode == UART_8bit_BRTx))	//可变波特率
 		{
 			j = (MAIN_Fosc / 4) / COMx->UART_BaudRate;	//按1T计算

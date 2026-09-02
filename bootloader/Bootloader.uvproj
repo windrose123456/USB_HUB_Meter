@@ -322,7 +322,7 @@
             <InterruptVectorAddress>0</InterruptVectorAddress>
             <VariousControls>
               <MiscControls></MiscControls>
-              <Define>BOOTLOADER</Define>
+              <Define></Define>
               <Undefine></Undefine>
               <IncludePath>.\inc</IncludePath>
             </VariousControls>
@@ -382,39 +382,9 @@
               <FilePath>.\src\bootloader.c</FilePath>
             </File>
             <File>
-              <FileName>STC8G_H_UART.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\src\STC8G_H_UART.c</FilePath>
-            </File>
-            <File>
               <FileName>STC8H.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\inc\STC8H.h</FilePath>
-            </File>
-            <File>
-              <FileName>config.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\inc\config.h</FilePath>
-            </File>
-            <File>
-              <FileName>Type_def.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\inc\Type_def.h</FilePath>
-            </File>
-            <File>
-              <FileName>STC8G_H_UART.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\inc\STC8G_H_UART.h</FilePath>
-            </File>
-            <File>
-              <FileName>STC8G_H_Delay.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\inc\STC8G_H_Delay.h</FilePath>
-            </File>
-            <File>
-              <FileName>STC8G_H_Switch.h</FileName>
-              <FileType>5</FileType>
-              <FilePath>.\inc\STC8G_H_Switch.h</FilePath>
             </File>
           </Files>
         </Group>
