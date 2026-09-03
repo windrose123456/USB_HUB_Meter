@@ -1,0 +1,3 @@
+1.此工程已失败，原因是STC8G1k08A-8Pin的存储区域分为8k固件flash，4k EEPROM 区，IAP命令只能读写EEPROM，需要专用IAP型号单片机，将存储区域全部设置为EEPROM区，才能实现自定义bootloader。
+2.不过也不是没有收获，bootloader串口收发、APP跳转已经调通，IAP读写指令和例程相比应该少了一点设置寄存器语句。
+3.后续通过IAP_CONTR唤起芯片自带bootloader进行更新，当用户向此寄存器写入 0x60，即可实现软件复位到系统区，进而实现不停电就可进行 ISP 下载

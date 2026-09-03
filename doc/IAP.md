@@ -98,254 +98,11 @@ Pin	功能	连接目标
 
 四、STC8G1K08A 固件
 
-4.1 Bootloader — bootloader.c
+注：自定义 Bootloader 方案已放弃（见7.0），以下为 App 固件代码。
 
-编译到 ISP/IAP 区域（Flash 末尾 1KB，起始地址 0x1C00），Keil 中需去掉默认 STARTUP.A51，手动设置 SP。
+4.1 App — main.c
 
-/************************************************************
- * bootloader.c — STC8G1K08A IAP 引导程序
- * 编译目标地址: 0x1C00 (ISP/IAP 区域, 通过 STC-ISP 工具配置 1KB IAP)
- * 协议: 简化的字节协议 (无帧头, ACK/NAK)
- ************************************************************/
-#include "STC8G.h"
-#include <intrins.h>
-
-/* ---- IAP 寄存器 ---- */
-sfr IAP_DATA  = 0xC2;
-sfr IAP_ADDRH = 0xC3;
-sfr IAP_ADDRL = 0xC4;
-sfr IAP_CMD   = 0xC5;
-sfr IAP_TRIG  = 0xC6;
-sfr IAP_CONTR = 0xC7;
-
-#define IAP_IDLE    0
-#define IAP_READ    1
-#define IAP_WRITE   2
-#define IAP_ERASE   3
-
-/* ---- Flash 布局 ---- */
-#define APP_ADDR    0x0000
-#define APP_SIZE    0x1C00    /* 7KB 应用区 */
-#define FLAG_ADDR   0x1F00    /* IAP 标志存储位置 */
-#define IAP_FLAG    0xA5      /* 标志值 */
-
-/* ---- Bootloader 命令 ---- */
-#define BL_INFO     0x05
-#define BL_ERASE    0x01
-#define BL_WRITE    0x02
-#define BL_REBOOT   0x04
-#define BL_ACK      0x06
-#define BL_NAK      0x15
-
-#define FOSC 11059200UL
-#define BAUD 115200UL
-
-/* ---- 延时 ---- */
-static void delay_ms(unsigned int ms) {
-    unsigned int i, j;
-    for (i = 0; i < ms; i++)
-        for (j = 0; j < 120; j++);
-}
-
-/* ---- UART (轮询模式) ---- */
-static void uart_init(void) {
-    SCON = 0x50;            /* Mode 1, REN=1 */
-    AUXR |= 0x40;           /* Timer1 1T模式 */
-    TMOD &= 0x0F;
-    TH1 = (unsigned char)(256UL - (FOSC / 32UL / BAUD));
-    TL1 = TH1;
-    TR1 = 1;
-}
-
-static void uart_send(unsigned char c) {
-    SBUF = c; while (!TI); TI = 0;
-}
-
-static unsigned char uart_recv(void) {
-    while (!RI); RI = 0;
-    return SBUF;
-}
-
-/* 带超时接收, 返回 0=超时 */
-static unsigned char uart_recv_tout(unsigned int ms) {
-    unsigned int t;
-    for (t = 0; t < ms; t++) {
-        if (RI) { RI = 0; return SBUF; }
-        { unsigned int d; for (d = 0; d < 120; d++); }
-    }
-    return 0;
-}
-
-/* ---- IAP 操作 ---- */
-static void iap_off(void) {
-    IAP_CONTR = 0; IAP_CMD = 0; IAP_TRIG = 0;
-}
-
-static unsigned char iap_read(unsigned int addr) {
-    unsigned char d;
-    IAP_CONTR = 0x80;
-    IAP_CMD = IAP_READ;
-    IAP_ADDRH = (unsigned char)(addr >> 8);
-    IAP_ADDRL = (unsigned char)(addr & 0xFF);
-    IAP_TRIG = 0x5A; IAP_TRIG = 0xA5;
-    _nop_(); _nop_();
-    d = IAP_DATA;
-    iap_off();
-    return d;
-}
-
-static void iap_write(unsigned int addr, unsigned char d) {
-    IAP_CONTR = 0x80;
-    IAP_CMD = IAP_WRITE;
-    IAP_ADDRH = (unsigned char)(addr >> 8);
-    IAP_ADDRL = (unsigned char)(addr & 0xFF);
-    IAP_DATA = d;
-    IAP_TRIG = 0x5A; IAP_TRIG = 0xA5;
-    _nop_(); _nop_();
-    iap_off();
-}
-
-static void iap_erase_page(unsigned int addr) {
-    IAP_CONTR = 0x80;
-    IAP_CMD = IAP_ERASE;
-    IAP_ADDRH = (unsigned char)(addr >> 8);
-    IAP_ADDRL = (unsigned char)(addr & 0xFF);
-    IAP_TRIG = 0x5A; IAP_TRIG = 0xA5;
-    _nop_(); _nop_();
-    iap_off();
-}
-
-/* 写 IAP 标志 (写在配置区, 不会影响代码) */
-static void set_flag(unsigned char val) {
-    iap_erase_page(FLAG_ADDR);
-    iap_write(FLAG_ADDR, val);
-}
-
-/* 跳转到应用程序 */
-static void jump_app(void) {
-    iap_off();
-    EA = 0;
-    /* 复位到应用区: SWBS=0, SWRST=1 */
-    IAP_CONTR = 0x20;
-}
-
-/* ---- 主函数 ---- */
-void main(void) {
-    unsigned char flag, cmd;
-    unsigned int addr;
-    unsigned char len, i, buf[32];
-
-    SP = 0x7F;              /* 手动设置栈顶 */
-    uart_init();
-    delay_ms(100);
-
-    /* 读取 IAP 标志 */
-    flag = iap_read(FLAG_ADDR);
-
-    if (flag != IAP_FLAG) {
-        /* 检查应用区是否有有效代码 */
-        if (iap_read(APP_ADDR) != 0xFF) {
-            jump_app();     /* 正常跳转到应用 */
-        }
-        /* 应用区为空, 停留在 bootloader */
-    }
-
-    /* ====== IAP 模式 ====== */
-    while (1) {
-        cmd = uart_recv_tout(30000); /* 30秒超时 */
-        if (cmd == 0) jump_app();     /* 超时则重启 */
-
-        switch (cmd) {
-        case BL_INFO:
-            uart_send(BL_ACK);
-            uart_send('S'); uart_send('T'); uart_send('C');
-            uart_send('8'); uart_send('G');
-            uart_send(0x08); /* 8KB */
-            break;
-
-        case BL_ERASE:
-            addr = (unsigned int)uart_recv_tout(2000) << 8;
-            addr |= uart_recv_tout(2000);
-            if (addr < APP_SIZE)
-                iap_erase_page(addr);
-            uart_send(BL_ACK);
-            break;
-
-        case BL_WRITE:
-            addr = (unsigned int)uart_recv_tout(2000) << 8;
-            addr |= uart_recv_tout(2000);
-            len = uart_recv_tout(2000);
-            if (len > 32) len = 32;
-            for (i = 0; i < len; i++)
-                buf[i] = uart_recv_tout(2000);
-            for (i = 0; i < len; i++)
-                iap_write(addr + i, buf[i]);
-            uart_send(BL_ACK);
-            break;
-
-        case BL_REBOOT:
-            uart_send(BL_ACK);
-            delay_ms(20);
-            set_flag(0x00);     /* 清除 IAP 标志 */
-            delay_ms(20);
-            jump_app();
-            break;
-
-        default:
-            uart_send(BL_NAK);
-            break;
-        }
-    }
-}
-
-
-4.1.1 Bootloader 设计说明
-
-启动判断逻辑:
-MCU复位 → 读取IAP_FLAG(0x1F00)
-  ├─ == 0xA5 → 进入IAP模式（等待命令）
-  └─ != 0xA5 → 读取APP_VALID(0x1F01)
-      ├─ == 0xAA → 验证CRC16
-      │   ├─ CRC正确 → 跳转App
-      │   └─ CRC失败 → 进入IAP模式（App损坏）
-      └─ != 0xAA → 检查App首字节
-          ├─ != 0xFF → 进入IAP模式（App不完整）
-          └─ == 0xFF → 进入IAP模式（App为空）
-
-UART模式: 轮询（空间紧张，轮询比中断节省约50-100字节）
-
-CRC16校验:
-- 多项式: 0x8005 (CRC-16/IBM)
-- 初始值: 0x0000
-- 计算范围: 0x0000-0x1BFF（整个App区）
-- 存储位置: 0x1F02-0x1F03
-- 上位机在BL_WRITE完成后计算并发送
-
-App完整性标志:
-- APP_VALID(0x1F01) = 0xAA 仅在BL_VERIFY验证通过后设置
-- 如果烧写中途断电，APP_VALID未设置，下次启动进入IAP模式
-- BL_REBOOT时清除IAP_FLAG，APP_VALID保持
-
-新增命令:
-BL_VERIFY  (0x03): 发 [CRC_H][CRC_L] → 收 [ACK/NAK]
-  - 上位机计算App区CRC16并发送
-  - Bootloader验证后设置APP_VALID=0xAA
-  - 成功回复ACK，失败回复NAK
-
-BL_GET_FLAG(0x06): 发 → 无参 → 收 [ACK][IAP_FLAG][APP_VALID]
-  - 读取标志位状态，用于调试
-
-看门狗: Bootloader不启用（避免擦写期间复位）
-掉电保护: 擦写操作由STC8G硬件保证原子性，最坏情况APP_VALID未设置
-超时处理: IAP模式30秒超时→跳转App（尝试运行）
-
-完整固件更新时序:
-PC                      MCU(Boot)
- │  BL_INFO(0x05)    →  [ACK][芯片信息][版本号]
- │  BL_ERASE ×N      →  [ACK] × N
- │  BL_WRITE ×N      →  [ACK] × N
- │  BL_VERIFY        →  [ACK/NAK]  (验证CRC，设置APP_VALID)
- │  BL_REBOOT(0x04)  →  [ACK] → 复位到App
+编译到 0x0000 起始地址（默认设置）。
 
 /************************************************************
  * main.c — STC8G1K08A 应用程序
@@ -704,35 +461,18 @@ void main(void) {
 
 4.3 Keil 工程配置
 
-Bootloader 工程 (bootloader.uvproj)：
-
-
-设置项	值
-Device	STC8G1K08A
-Code ROM Size	LARGE
-STARTUP.A51	不包含（去掉或禁用）
-BL51 → Code 范围	0x1C00-0x1FFF
-优化级别	Level 8 (Size)
-
-编译后用 STC-ISP 工具下载到 ISP/IAP 区域（在 STC-ISP 中设置 IAP 大小为 1KB）。
-
-
-Application 工程 (app.uvproj)：
-
+Application 工程 (USB_HUB_Meter.uvproj)：
 
 设置项	值
 Device	STC8G1K08A
 STARTUP.A51	包含
 优化级别	Level 8 (Size)
 
-编译后用 STC-ISP 下载到 应用区域（起始地址 0x0000）。
-
+编译后用 STC-ISP 下载到应用区域（起始地址 0x0000）。
 
 STC-ISP 工具配置要点：
 
 IRC 频率设为 11.0592 MHz
-IAP/IAP 大小设为 1024 字节 (1KB)
-第一次烧录时先通过 STC-ISP 同时下载 Bootloader 和 Application
 
 五、C# 上位机
 
@@ -1410,57 +1150,28 @@ PC                    MCU(App)              MCU(Boot)
 3.波特率：两端必须一致 (115200)，STC-ISP 中确认 IRC 频率为 11.0592 MHz
 4.CH634X 时序：复位低电平持续 20ms 已足够，如芯片手册有更长要求请调整 delay_ms
 
-七、Bootloader 设计要点
+七、IAP 固件更新方案
 
-7.1 烧写失败恢复机制
+7.0 重要结论
 
-问题: 烧写过程中断电或通信中断，App不完整，需要自动恢复到IAP模式
+STC8G1K08A-8Pin 的 Flash 分为 8KB 固件区 + 4KB EEPROM 区，IAP 命令只能读写 EEPROM 区域，无法擦写固件区。
+需要"全 IAP"型号（Flash 全部可作为 EEPROM）才能实现自定义 bootloader。
 
-解决方案:
-1. 使用 APP_VALID 标志 (0x1F01): 仅在 BL_VERIFY 验证 CRC16 通过后设置为 0xAA
-2. Bootloader 启动时检查:
-   - IAP_FLAG == 0xA5 → 进入 IAP 模式
-   - APP_VALID == 0xAA 且 CRC16 正确 → 跳转 App
-   - APP_VALID != 0xAA → 进入 IAP 模式（App 不完整或为空）
+替代方案：使用 IAP_CONTR = 0x60 触发芯片自带 ISP bootloader 进行固件更新。
 
-效果:
-- 正常更新: 擦写 → 验证CRC → 设置APP_VALID → 复位 → Bootloader检查通过 → 运行App
-- 中途断电: 擦写中断 → APP_VALID未设置 → 下次启动进入IAP模式
-- 写入错误: CRC验证失败 → APP_VALID未设置 → 保持IAP模式
+App 收到 ENTER_IAP 命令后的处理流程：
+1. 回复 ACK 响应
+2. 写入 IAP_FLAG (0xA5) 到 0x1F00（可选，用于下次启动判断）
+3. 执行 IAP_CONTR = 0x60（SWBS=1, SWRST=1），芯片软复位进入系统自带 ISP 区域
+4. PC 端通过 STC-ISP 协议与芯片自带 bootloader 通信完成固件下载
 
-7.2 CRC16 校验
+优点：
+- 不需要自定义 bootloader，节省 Flash 空间
+- 使用芯片原厂 ISP 协议，兼容性好
+- App 代码中仅需几行寄存器操作
 
-算法: CRC-16/IBM (多项式 0x8005, 初始值 0x0000)
-范围: 0x0000-0x1BFF (整个 App 区域, 7KB)
-存储: 0x1F02-0x1F03 (Big Endian)
+缺点：
+- 依赖 STC-ISP 协议，上位机需适配该协议
+- 不能自定义 bootloader 逻辑
 
-上位机流程:
-1. 读取编译后的 .hex/.bin 文件
-2. 填充到 7KB (不足部分补 0xFF)
-3. 计算 CRC16
-4. 在 BL_WRITE 完成后发送 BL_VERIFY [CRC_H][CRC_L]
-5. 收到 ACK 表示验证通过，APP_VALID 已设置
-
-7.3 UART 模式选择
-
-选择轮询模式，原因:
-- Bootloader 仅 1KB，空间紧张
-- 轮询代码比中断小约 50-100 字节
-- Bootloader 不需要后台接收，轮询足够
-- 中断需要 ISR 入口和栈空间
-
-7.4 看门狗与掉电保护
-
-- Bootloader 不启用看门狗（避免擦写期间复位）
-- App 可选择启用看门狗
-- 掉电保护由 STC8G 硬件保证（擦写操作原子性）
-- 最坏情况: App 部分写入，APP_VALID 未设置，下次启动自动进入 IAP
-
-7.5 代码大小预算 (1KB = 1024 字节)
-
-- 启动判断 + IAP 操作: ~300 字节
-- UART 轮询驱动: ~100 字节
-- 协议处理 (INFO/ERASE/WRITE/VERIFY/REBOOT): ~400 字节
-- CRC16 计算: ~100 字节
-- 延时 + 杂项: ~100 字节
-- 总计: ~1000 字节 (刚好在 1KB 预算内)
+（注：STC-ISP 协议握手流程待实现后补充）

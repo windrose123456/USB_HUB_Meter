@@ -1,6 +1,0 @@
-﻿===== 会话开始 2026-09-01 15:31:21 =====
-[LOG] 日志路径: C:\Users\35061\Desktop\me\USB_HUB_Meter\Merged_Firmware\Host\log\log_20260901_153121.txt
-[DBG] [15:31:27.001] TX  SET_LED  AA 55 01 02 01 FD
-[RAW] [15:31:27.021] 43 3A 30 32 0D 0A AA 55 01 82 01 7D
-[DBG] [15:31:27.022] RX  SET_LED(Resp)  ERR  AA 55 01 82 01 7D
-===== 会话结束 2026-09-01 15:33:34 =====

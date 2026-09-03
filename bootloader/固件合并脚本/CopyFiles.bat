@@ -12,8 +12,8 @@ copy /Y "..\USB_HUB_Meter\output\USB_HUB_Meter.hex" ".\"
 if %errorlevel% equ 0 (echo [OK] USB_HUB_Meter.hex) else (echo [FAIL] 复制主固件失败)
 
 :: 复制 Bootloader HEX
-copy /Y "..\bootloader\Objects\Bootloader.hex" ".\"
-if %errorlevel% equ 0 (echo [OK] Bootloader.hex) else (echo [FAIL] 复制 Bootloader HEX 失败)
+::copy /Y "..\bootloader\Objects\Bootloader.hex" ".\"
+::if %errorlevel% equ 0 (echo [OK] Bootloader.hex) else (echo [FAIL] 复制 Bootloader HEX 失败)
 
 :: 创建快捷方式（放置在 Merged_Firmware 根目录）
 echo 正在创建快捷方式...
@@ -23,4 +23,4 @@ powershell -Command "$dir = '%SCRIPT_DIR%'.TrimEnd('\'); $exe = Join-Path $dir '
 if %errorlevel% equ 0 (echo [OK] 快捷方式已创建) else (echo [FAIL] 创建快捷方式失败)
 
 echo 全部完成！双击 USB_HUB_Meter_Host.lnk 即可运行上位机。
-pause
+::pause

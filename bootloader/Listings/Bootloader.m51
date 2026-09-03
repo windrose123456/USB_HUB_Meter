@@ -1,9 +1,9 @@
-BL51 BANKED LINKER/LOCATER V6.22                                                        09/03/2026  00:51:36  PAGE 1
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                    09/03/2026  11:13:22  PAGE 1
 
 
-BL51 BANKED LINKER/LOCATER V6.22, INVOKED BY:
-D:\KEIL_V5\C51\BIN\BL51.EXE .\Objects\bootloader.obj TO .\Objects\Bootloader PRINT (.\Listings\Bootloader.m51) RAMSIZE (
->> 256) CODE (0X1C00-0X1FFF)
+BL51 BANKED LINKER/LOCATER V6.22.4.0, INVOKED BY:
+C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\BIN\BL51.EXE .\Objects\bootloader.obj TO .\Objects\Bootloader PRINT (.\Listings
+>> \Bootloader.m51) RAMSIZE (256) CODE (0X1C00-0X1FFF)
 
 
 MEMORY MODEL: SMALL
@@ -11,7 +11,7 @@ MEMORY MODEL: SMALL
 
 INPUT MODULES INCLUDED:
   .\Objects\bootloader.obj (BOOTLOADER)
-  D:\KEIL_V5\C51\LIB\C51S.LIB (?C_STARTUP)
+  C:\USERS\35061\APPDATA\LOCAL\KEIL_V5\C51\LIB\C51S.LIB (?C_STARTUP)
 
 
 LINK MAP OF MODULE:  .\Objects\Bootloader (BOOTLOADER)
@@ -28,19 +28,19 @@ LINK MAP OF MODULE:  .\Objects\Bootloader (BOOTLOADER)
             * * * * * * *   C O D E   M E M O R Y   * * * * * * *
             CODE    0000H     0003H     ABSOLUTE     
                     0003H     1BFDH                  *** GAP ***
-            CODE    1C00H     0126H     UNIT         ?PR?MAIN?BOOTLOADER
-            CODE    1D26H     0033H     UNIT         ?PR?_UART_RECV_TOUT?BOOTLOADER
-            CODE    1D59H     0020H     UNIT         ?PR?_DELAY_MS?BOOTLOADER
-            CODE    1D79H     001DH     UNIT         ?PR?_IAP_READ?BOOTLOADER
-            CODE    1D96H     001CH     UNIT         ?PR?_IAP_WRITE?BOOTLOADER
-            CODE    1DB2H     001AH     UNIT         ?PR?_IAP_ERASE_PAGE?BOOTLOADER
-            CODE    1DCCH     0012H     UNIT         ?PR?UART_INIT?BOOTLOADER
-            CODE    1DDEH     000EH     UNIT         ?PR?_SET_FLAG?BOOTLOADER
-            CODE    1DECH     000CH     UNIT         ?C_C51STARTUP
-            CODE    1DF8H     0009H     UNIT         ?PR?JUMP_APP?BOOTLOADER
-            CODE    1E01H     0008H     UNIT         ?PR?_UART_SEND?BOOTLOADER
-            CODE    1E09H     0008H     UNIT         ?PR?UART_RECV?BOOTLOADER
-            CODE    1E11H     0008H     UNIT         ?PR?IAP_OFF?BOOTLOADER
+            CODE    1C00H     00DAH     UNIT         ?PR?MAIN?BOOTLOADER
+            CODE    1CDAH     0033H     UNIT         ?PR?_UART_RECV_TOUT?BOOTLOADER
+            CODE    1D0DH     0020H     UNIT         ?PR?_DELAY_MS?BOOTLOADER
+            CODE    1D2DH     001CH     UNIT         ?PR?_IAP_READ?BOOTLOADER
+            CODE    1D49H     001CH     UNIT         ?PR?_IAP_WRITE?BOOTLOADER
+            CODE    1D65H     001AH     UNIT         ?PR?_IAP_ERASE_PAGE?BOOTLOADER
+            CODE    1D7FH     0012H     UNIT         ?PR?UART_INIT?BOOTLOADER
+            CODE    1D91H     000EH     UNIT         ?PR?_SET_FLAG?BOOTLOADER
+            CODE    1D9FH     000CH     UNIT         ?C_C51STARTUP
+            CODE    1DABH     0009H     UNIT         ?PR?JUMP_APP?BOOTLOADER
+            CODE    1DB4H     0008H     UNIT         ?PR?_UART_SEND?BOOTLOADER
+            CODE    1DBCH     0008H     UNIT         ?PR?UART_RECV?BOOTLOADER
+            CODE    1DC4H     0008H     UNIT         ?PR?IAP_OFF?BOOTLOADER
 
 
 
@@ -56,24 +56,19 @@ SEGMENT                                  DATA_GROUP
 ?PR?MAIN?BOOTLOADER                    0008H    0023H
   +--> ?PR?UART_INIT?BOOTLOADER
   +--> ?PR?_DELAY_MS?BOOTLOADER
-  +--> ?PR?_IAP_READ?BOOTLOADER
-  +--> ?PR?JUMP_APP?BOOTLOADER
   +--> ?PR?_UART_SEND?BOOTLOADER
-BL51 BANKED LINKER/LOCATER V6.22                                                      09/03/2026  00:51:36  PAGE 2
-
-
   +--> ?PR?_UART_RECV_TOUT?BOOTLOADER
-  +--> ?PR?_IAP_ERASE_PAGE?BOOTLOADER
-  +--> ?PR?_IAP_WRITE?BOOTLOADER
   +--> ?PR?_SET_FLAG?BOOTLOADER
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  09/03/2026  11:13:22  PAGE 2
 
-?PR?_IAP_READ?BOOTLOADER               -----    -----
-  +--> ?PR?IAP_OFF?BOOTLOADER
 
-?PR?JUMP_APP?BOOTLOADER                -----    -----
-  +--> ?PR?IAP_OFF?BOOTLOADER
+  +--> ?PR?JUMP_APP?BOOTLOADER
 
 ?PR?_UART_RECV_TOUT?BOOTLOADER         002BH    0002H
+
+?PR?_SET_FLAG?BOOTLOADER               -----    -----
+  +--> ?PR?_IAP_ERASE_PAGE?BOOTLOADER
+  +--> ?PR?_IAP_WRITE?BOOTLOADER
 
 ?PR?_IAP_ERASE_PAGE?BOOTLOADER         -----    -----
   +--> ?PR?IAP_OFF?BOOTLOADER
@@ -81,9 +76,8 @@ SEGMENT                                  DATA_GROUP
 ?PR?_IAP_WRITE?BOOTLOADER              -----    -----
   +--> ?PR?IAP_OFF?BOOTLOADER
 
-?PR?_SET_FLAG?BOOTLOADER               -----    -----
-  +--> ?PR?_IAP_ERASE_PAGE?BOOTLOADER
-  +--> ?PR?_IAP_WRITE?BOOTLOADER
+?PR?JUMP_APP?BOOTLOADER                -----    -----
+  +--> ?PR?IAP_OFF?BOOTLOADER
 
 
 
@@ -94,7 +88,7 @@ SYMBOL TABLE OF MODULE:  .\Objects\Bootloader (BOOTLOADER)
 
   -------         MODULE        BOOTLOADER
   C:0000H         SYMBOL        _ICE_DUMMY_
-  C:1D2AH         PUBLIC        _uart_recv_tout
+  C:1CDEH         PUBLIC        _uart_recv_tout
   D:00A0H         PUBLIC        P2
   D:00B0H         PUBLIC        P3
   B:00A8H.7       PUBLIC        EA
@@ -107,29 +101,29 @@ SYMBOL TABLE OF MODULE:  .\Objects\Bootloader (BOOTLOADER)
   D:0081H         PUBLIC        SP
   D:00C4H         PUBLIC        IAP_ADDRL
   C:1C00H         PUBLIC        main
-  C:1DB2H         SYMBOL        _iap_erase_page
+  C:1D65H         SYMBOL        _iap_erase_page
   D:0099H         PUBLIC        SBUF
   D:0098H         PUBLIC        SCON
   D:0089H         PUBLIC        TMOD
   D:0088H         PUBLIC        TCON
-  C:1D79H         SYMBOL        _iap_read
+  C:1D2DH         SYMBOL        _iap_read
   D:008EH         PUBLIC        AUXR
   D:00C7H         PUBLIC        IAP_CONTR
-  C:1DDEH         SYMBOL        _set_flag
-  C:1D96H         SYMBOL        _iap_write
-  C:1E01H         SYMBOL        _uart_send
+  C:1D91H         SYMBOL        _set_flag
+  C:1D49H         SYMBOL        _iap_write
+  C:1DB4H         SYMBOL        _uart_send
   D:008DH         PUBLIC        TH1
-BL51 BANKED LINKER/LOCATER V6.22                                                      09/03/2026  00:51:36  PAGE 3
-
-
-  C:1E09H         SYMBOL        uart_recv
+  C:1DBCH         SYMBOL        uart_recv
   D:008BH         PUBLIC        TL1
-  C:1D59H         SYMBOL        _delay_ms
-  C:1DCCH         SYMBOL        uart_init
+  C:1D0DH         SYMBOL        _delay_ms
+  C:1D7FH         SYMBOL        uart_init
   D:00C2H         PUBLIC        IAP_DATA
   B:0088H.6       PUBLIC        TR1
-  C:1E11H         SYMBOL        iap_off
-  C:1DF8H         SYMBOL        jump_app
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  09/03/2026  11:13:22  PAGE 3
+
+
+  C:1DC4H         SYMBOL        iap_off
+  C:1DABH         SYMBOL        jump_app
   D:00C6H         PUBLIC        IAP_TRIG
   -------         PROC          _DELAY_MS
   D:0006H         SYMBOL        ms
@@ -137,40 +131,40 @@ SYMBOL TABLE OF MODULE:  .\Objects\Bootloader (BOOTLOADER)
   D:0004H         SYMBOL        i
   D:0002H         SYMBOL        j
   -------         ENDDO         
-  C:1D59H         LINE#         34
-  C:1D59H         LINE#         36
-  C:1D63H         LINE#         37
-  C:1D78H         LINE#         38
+  C:1D0DH         LINE#         34
+  C:1D0DH         LINE#         36
+  C:1D17H         LINE#         37
+  C:1D2CH         LINE#         38
   -------         ENDPROC       _DELAY_MS
   -------         PROC          UART_INIT
-  C:1DCCH         LINE#         41
-  C:1DCCH         LINE#         42
-  C:1DCFH         LINE#         43
-  C:1DD2H         LINE#         44
-  C:1DD5H         LINE#         45
-  C:1DD8H         LINE#         46
-  C:1DDBH         LINE#         47
-  C:1DDDH         LINE#         48
+  C:1D7FH         LINE#         41
+  C:1D7FH         LINE#         42
+  C:1D82H         LINE#         43
+  C:1D85H         LINE#         44
+  C:1D88H         LINE#         45
+  C:1D8BH         LINE#         46
+  C:1D8EH         LINE#         47
+  C:1D90H         LINE#         48
   -------         ENDPROC       UART_INIT
   -------         PROC          _UART_SEND
   D:0007H         SYMBOL        c
-  C:1E01H         LINE#         50
-  C:1E01H         LINE#         51
-  C:1E03H         LINE#         52
-  C:1E06H         LINE#         53
-  C:1E08H         LINE#         54
+  C:1DB4H         LINE#         50
+  C:1DB4H         LINE#         51
+  C:1DB6H         LINE#         52
+  C:1DB9H         LINE#         53
+  C:1DBBH         LINE#         54
   -------         ENDPROC       _UART_SEND
   -------         PROC          UART_RECV
-  C:1E09H         LINE#         56
-  C:1E09H         LINE#         57
-  C:1E0CH         LINE#         58
-  C:1E0EH         LINE#         59
-  C:1E10H         LINE#         60
+  C:1DBCH         LINE#         56
+  C:1DBCH         LINE#         57
+  C:1DBFH         LINE#         58
+  C:1DC1H         LINE#         59
+  C:1DC3H         LINE#         60
   -------         ENDPROC       UART_RECV
-  C:1D26H         SYMBOL        L?0056
-  -------         PROC          L?0055
-  -------         ENDPROC       L?0055
-  C:1D26H         SYMBOL        L?0056
+  C:1CDAH         SYMBOL        L?0050
+  -------         PROC          L?0049
+  -------         ENDPROC       L?0049
+  C:1CDAH         SYMBOL        L?0050
   -------         PROC          _UART_RECV_TOUT
   D:0006H         SYMBOL        ms
   -------         DO            
@@ -179,86 +173,84 @@ SYMBOL TABLE OF MODULE:  .\Objects\Bootloader (BOOTLOADER)
   D:002BH         SYMBOL        d
   -------         ENDDO         
   -------         ENDDO         
-BL51 BANKED LINKER/LOCATER V6.22                                                      09/03/2026  00:51:36  PAGE 4
+  C:1CDEH         LINE#         62
+  C:1CDEH         LINE#         64
+  C:1CE8H         LINE#         65
+  C:1CF0H         LINE#         66
+  C:1D03H         LINE#         67
+  C:1D0AH         LINE#         68
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  09/03/2026  11:13:22  PAGE 4
 
 
-  C:1D2AH         LINE#         62
-  C:1D2AH         LINE#         64
-  C:1D34H         LINE#         65
-  C:1D3CH         LINE#         66
-  C:1D4FH         LINE#         67
-  C:1D56H         LINE#         68
-  C:1D58H         LINE#         69
+  C:1D0CH         LINE#         69
   -------         ENDPROC       _UART_RECV_TOUT
   -------         PROC          IAP_OFF
-  C:1E11H         LINE#         72
-  C:1E11H         LINE#         73
-  C:1E18H         LINE#         74
+  C:1DC4H         LINE#         72
+  C:1DC4H         LINE#         73
+  C:1DCBH         LINE#         74
   -------         ENDPROC       IAP_OFF
   -------         PROC          _IAP_READ
   D:0004H         SYMBOL        addr
   -------         DO            
   D:0007H         SYMBOL        d
   -------         ENDDO         
-  C:1D79H         LINE#         76
-  C:1D7DH         LINE#         78
-  C:1D80H         LINE#         79
-  C:1D83H         LINE#         80
-  C:1D85H         LINE#         81
-  C:1D88H         LINE#         82
-  C:1D8EH         LINE#         83
-  C:1D90H         LINE#         84
-  C:1D92H         LINE#         85
-  C:1D95H         LINE#         86
-  C:1D95H         LINE#         87
+  C:1D2DH         LINE#         76
+  C:1D31H         LINE#         78
+  C:1D34H         LINE#         79
+  C:1D37H         LINE#         80
+  C:1D39H         LINE#         81
+  C:1D3CH         LINE#         82
+  C:1D42H         LINE#         83
+  C:1D44H         LINE#         84
+  C:1D46H         LINE#         85
   -------         ENDPROC       _IAP_READ
   -------         PROC          _IAP_WRITE
   D:0002H         SYMBOL        addr
   D:0005H         SYMBOL        d
-  C:1D96H         LINE#         89
-  C:1D9AH         LINE#         90
-  C:1D9DH         LINE#         91
-  C:1DA0H         LINE#         92
-  C:1DA2H         LINE#         93
-  C:1DA5H         LINE#         94
-  C:1DA7H         LINE#         95
-  C:1DADH         LINE#         96
-  C:1DAFH         LINE#         97
+  C:1D49H         LINE#         89
+  C:1D4DH         LINE#         90
+  C:1D50H         LINE#         91
+  C:1D53H         LINE#         92
+  C:1D55H         LINE#         93
+  C:1D58H         LINE#         94
+  C:1D5AH         LINE#         95
+  C:1D60H         LINE#         96
+  C:1D62H         LINE#         97
   -------         ENDPROC       _IAP_WRITE
   -------         PROC          _IAP_ERASE_PAGE
   D:0004H         SYMBOL        addr
-  C:1DB2H         LINE#         100
-  C:1DB6H         LINE#         101
-  C:1DB9H         LINE#         102
-  C:1DBCH         LINE#         103
-  C:1DBEH         LINE#         104
-  C:1DC1H         LINE#         105
-  C:1DC7H         LINE#         106
-  C:1DC9H         LINE#         107
+  C:1D65H         LINE#         100
+  C:1D69H         LINE#         101
+  C:1D6CH         LINE#         102
+  C:1D6FH         LINE#         103
+  C:1D71H         LINE#         104
+  C:1D74H         LINE#         105
+  C:1D7AH         LINE#         106
+  C:1D7CH         LINE#         107
   -------         ENDPROC       _IAP_ERASE_PAGE
   -------         PROC          _SET_FLAG
   D:0003H         SYMBOL        val
-  C:1DDEH         LINE#         110
-BL51 BANKED LINKER/LOCATER V6.22                                                      09/03/2026  00:51:36  PAGE 5
-
-
-  C:1DE0H         LINE#         111
-  C:1DE7H         LINE#         112
+  C:1D91H         LINE#         110
+  C:1D93H         LINE#         111
+  C:1D9AH         LINE#         112
   -------         ENDPROC       _SET_FLAG
   -------         PROC          JUMP_APP
-  C:1DF8H         LINE#         115
-  C:1DF8H         LINE#         116
-  C:1DFBH         LINE#         117
-  C:1DFDH         LINE#         118
-  C:1E00H         LINE#         119
+  C:1DABH         LINE#         115
+  C:1DABH         LINE#         116
+  C:1DAEH         LINE#         117
+  C:1DB0H         LINE#         118
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  09/03/2026  11:13:22  PAGE 5
+
+
+  C:1DB3H         LINE#         119
   -------         ENDPROC       JUMP_APP
   -------         PROC          MAIN
   -------         DO            
-  D:0007H         SYMBOL        flag
+  D:0008H         SYMBOL        flag
   D:0007H         SYMBOL        cmd
-  D:0008H         SYMBOL        addr
-  D:000AH         SYMBOL        len
-  D:0001H         SYMBOL        i
+  D:0009H         SYMBOL        addr
+  D:0003H         SYMBOL        len
+  D:0002H         SYMBOL        i
   D:000BH         SYMBOL        buf
   -------         ENDDO         
   C:1C00H         LINE#         122
@@ -266,63 +258,56 @@ SYMBOL TABLE OF MODULE:  .\Objects\Bootloader (BOOTLOADER)
   C:1C03H         LINE#         128
   C:1C06H         LINE#         129
   C:1C09H         LINE#         130
-  C:1C0FH         LINE#         133
-  C:1C16H         LINE#         135
-  C:1C1BH         LINE#         137
-  C:1C25H         LINE#         138
-  C:1C28H         LINE#         139
-  C:1C28H         LINE#         141
-  C:1C28H         LINE#         144
-  C:1C2DH         LINE#         145
-  C:1C32H         LINE#         146
-  C:1C35H         LINE#         147
-  C:1C3AH         LINE#         148
-  C:1C3FH         LINE#         149
-  C:1C44H         LINE#         152
-  C:1C44H         LINE#         153
-  C:1C4BH         LINE#         156
-  C:1C5FH         LINE#         157
-  C:1C5FH         LINE#         158
-  C:1C64H         LINE#         159
-  C:1C72H         LINE#         160
-  C:1C7CH         LINE#         161
-  C:1C7EH         LINE#         162
-  C:1C81H         LINE#         164
-  C:1C81H         LINE#         165
-  C:1C8AH         LINE#         166
-  C:1C92H         LINE#         167
-  C:1C99H         LINE#         168
-  C:1CA0H         LINE#         169
-  C:1CA2H         LINE#         170
-  C:1CA4H         LINE#         172
-  C:1CA4H         LINE#         173
-  C:1CADH         LINE#         174
-  C:1CB5H         LINE#         175
-  C:1CBCH         LINE#         176
-BL51 BANKED LINKER/LOCATER V6.22                                                      09/03/2026  00:51:36  PAGE 6
-
-
-  C:1CC6H         LINE#         177
-  C:1CCEH         LINE#         178
-  C:1CDAH         LINE#         179
-  C:1CE2H         LINE#         180
-  C:1CF8H         LINE#         181
-  C:1CFDH         LINE#         182
-  C:1D00H         LINE#         184
-  C:1D00H         LINE#         185
-  C:1D05H         LINE#         186
-  C:1D0CH         LINE#         187
-  C:1D11H         LINE#         188
-  C:1D18H         LINE#         189
-  C:1D1BH         LINE#         190
-  C:1D1EH         LINE#         192
-  C:1D1EH         LINE#         193
-  C:1D23H         LINE#         194
+  C:1C0FH         LINE#         144
+  C:1C14H         LINE#         145
+  C:1C19H         LINE#         146
+  C:1C1CH         LINE#         147
+  C:1C21H         LINE#         148
+  C:1C26H         LINE#         149
+  C:1C2BH         LINE#         152
+  C:1C2BH         LINE#         153
+  C:1C32H         LINE#         156
+  C:1C43H         LINE#         157
+  C:1C43H         LINE#         158
+  C:1C48H         LINE#         159
+  C:1C56H         LINE#         160
+  C:1C60H         LINE#         161
+  C:1C62H         LINE#         162
+  C:1C64H         LINE#         164
+  C:1C64H         LINE#         165
+  C:1C6DH         LINE#         166
+  C:1C75H         LINE#         169
+  C:1C77H         LINE#         170
+  C:1C79H         LINE#         172
+  C:1C79H         LINE#         173
+  C:1C82H         LINE#         174
+  C:1C8AH         LINE#         175
+  C:1C91H         LINE#         176
+  C:1C99H         LINE#         177
+  C:1CA0H         LINE#         178
+  C:1CACH         LINE#         181
+  C:1CB1H         LINE#         182
+  C:1CB4H         LINE#         184
+  C:1CB4H         LINE#         185
+  C:1CB9H         LINE#         186
+  C:1CC0H         LINE#         187
+  C:1CC5H         LINE#         188
+  C:1CCCH         LINE#         189
+  C:1CCFH         LINE#         190
+  C:1CD2H         LINE#         192
+  C:1CD2H         LINE#         193
+  C:1CD7H         LINE#         194
   -------         ENDPROC       MAIN
   -------         ENDMOD        BOOTLOADER
+BL51 BANKED LINKER/LOCATER V6.22.4.0                                                  09/03/2026  11:13:22  PAGE 6
+
+
 
 *** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
     SEGMENT: ?PR?UART_RECV?BOOTLOADER
 
-Program Size: data=46.0 xdata=0 code=540
-LINK/LOCATE RUN COMPLETE.  1 WARNING(S),  0 ERROR(S)
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_IAP_READ?BOOTLOADER
+
+Program Size: data=46.0 xdata=0 code=463
+LINK/LOCATE RUN COMPLETE.  2 WARNING(S),  0 ERROR(S)

@@ -7,7 +7,7 @@
 #define IAP_WRITE   2
 #define IAP_ERASE   3
 
-#define FLAG_ADDR   0x1F00
+#define FLAG_ADDR   0x0E00
 #define IAP_FLAG    0xA5
 
 /* ========== 协议帧解析 ========== */

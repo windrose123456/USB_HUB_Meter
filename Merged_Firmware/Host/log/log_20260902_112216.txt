@@ -1,3 +1,0 @@
-﻿===== 会话开始 2026-09-02 11:22:16 =====
-[LOG] 日志路径: C:\Users\35061\Desktop\me\USB_HUB_Meter\Merged_Firmware\Host\log\log_20260902_112216.txt
-===== 会话结束 2026-09-02 11:22:22 =====

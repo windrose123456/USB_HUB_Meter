@@ -9,7 +9,7 @@
 /* ---- Flash 布局 ---- */
 #define APP_ADDR    0x0000
 #define APP_SIZE    0x1C00    /* 7KB 应用区 */
-#define FLAG_ADDR   0x1F00    /* IAP 标志存储位置 */
+#define FLAG_ADDR   0x0E00	  /* IAP 标志存储位置 */     
 #define IAP_FLAG    0xA5      /* 标志值 */
 
 /* ---- Bootloader 命令 ---- */
@@ -129,16 +129,16 @@ void main(void) {
     uart_init();
     delay_ms(100);
 
-    /* 读取 IAP 标志 */
-    flag = iap_read(FLAG_ADDR);
+//    /* 读取 IAP 标志 */
+//    flag = iap_read(FLAG_ADDR);
 
-    if (flag != IAP_FLAG) {
-        /* 检查应用区是否有有效代码 */
-        if (iap_read(APP_ADDR) != 0xFF) {
-            jump_app();     /* 正常跳转到应用 */
-        }
-        /* 应用区为空, 停留在 bootloader */
-    }
+//    if (flag != IAP_FLAG) {
+//        /* 检查应用区是否有有效代码 */
+//        if (iap_read(APP_ADDR) != 0xFF) {
+//            jump_app();     /* 正常跳转到应用 */
+//        }
+//        /* 应用区为空, 停留在 bootloader */
+//    }
 
     /* 发送启动标识 */
     uart_send('B');
@@ -164,8 +164,8 @@ void main(void) {
         case BL_ERASE:
             addr = (unsigned int)uart_recv_tout(2000) << 8;
             addr |= uart_recv_tout(2000);
-            if (addr < APP_SIZE)
-                iap_erase_page(addr);
+//            if (addr < APP_SIZE)
+//                iap_erase_page(addr);
             uart_send(BL_ACK);
             break;
 
@@ -176,8 +176,8 @@ void main(void) {
             if (len > 32) len = 32;
             for (i = 0; i < len; i++)
                 buf[i] = uart_recv_tout(2000);
-            for (i = 0; i < len; i++)
-                iap_write(addr + i, buf[i]);
+//            for (i = 0; i < len; i++)
+//                iap_write(addr + i, buf[i]);
             uart_send(BL_ACK);
             break;
 
