@@ -1,6 +1,9 @@
 using System.Diagnostics;
+using System.IO;
 using System.IO.Ports;
 using System.Management;
+using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace USB_HUB_Meter_Host
 {
@@ -16,6 +19,9 @@ namespace USB_HUB_Meter_Host
         SerialPort? _port;
         bool _connected;
         byte[]? _lastRawFrame;  // 保存完整原始帧，用于响应显示
+        readonly object _portLock = new();  // 串口访问锁
+        bool _readingBusy;  // 防止重入读取
+        int _cmdSequence;  // 命令序列号，防止并发 SendCmd 干扰
 
         // ===== 后台监听 =====
         Thread? _serialMonitorThread;
@@ -235,7 +241,10 @@ namespace USB_HUB_Meter_Host
             {
                 StopSerialMonitor();
                 _timer?.Stop();
-                _port?.Close();
+                lock (_portLock)
+                {
+                    _port?.Close();
+                }
                 _connected = false;
             }
             else
@@ -252,8 +261,26 @@ namespace USB_HUB_Meter_Host
                     {
                         ReadTimeout = _config.Serial.ReadTimeout,
                         WriteTimeout = _config.Serial.WriteTimeout,
+                        DtrEnable = false,
+                        RtsEnable = false,
                     };
+                    _port.ErrorReceived += (_, e) => _port?.DiscardInBuffer();
+                    _port.PinChanged += (_, _) => { };
                     _port.Open();
+                    _port.DiscardInBuffer();
+
+                    // 禁用所有调制解调器状态事件通知，防止驱动触发系统蜂鸣
+                    try
+                    {
+                        // 通过反射获取 SerialPort 内部的 SafeFileHandle
+                        var field = typeof(SerialPort).GetField("_handle",
+                            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                        if (field?.GetValue(_port) is Microsoft.Win32.SafeHandles.SafeFileHandle handle)
+                        {
+                            SetCommMask(handle.DangerousGetHandle(), 0);
+                        }
+                    }
+                    catch { }
                     _connected = true;
                     StartSerialMonitor();
                 }
@@ -292,7 +319,7 @@ namespace USB_HUB_Meter_Host
         //  协议: 发送/接收
         // ================================================================
 
-        byte[]? SendCmd(byte cmd, byte[]? data, int timeoutMs = 1000)
+        byte[]? SendCmd(byte cmd, byte[]? data, int timeoutMs = 2000)
         {
             if (!_connected || _port == null) return null;
 
@@ -302,17 +329,43 @@ namespace USB_HUB_Meter_Host
             // 显示发送数据
             AppendTerminal(RxTxType.Tx, pkt, cmdName);
 
-            _port.DiscardInBuffer();
-            _port.Write(pkt, 0, pkt.Length);
+            int seq = Interlocked.Increment(ref _cmdSequence);
+
+            lock (_portLock)
+            {
+                if (_port == null || !_port.IsOpen) return null;
+                try
+                {
+                    _port.DiscardInBuffer();
+                    _port.Write(pkt, 0, pkt.Length);
+                }
+                catch (TimeoutException) { return null; }
+                catch (InvalidOperationException) { return null; }
+                catch (IOException) { return null; }
+                catch (Exception) { return null; }
+            }
 
             // 等待响应 (后台线程会捕获数据)
-            var resp = WaitForResponse(timeoutMs);
+            var resp = WaitForResponse(timeoutMs, seq);
 
             // 显示响应数据
             if (resp != null && _lastRawFrame != null)
             {
                 string respCmdName = _proto.GetCmdName(_lastRawFrame[3]);
                 AppendTerminal(RxTxType.Rx, _lastRawFrame, respCmdName);
+            }
+            else
+            {
+                // 超时无响应
+                string timestamp = $"[{DateTime.Now:HH:mm:ss.fff}]";
+                string line = $"{timestamp} RX  {cmdName}  TIMEOUT";
+                _logFile.WriteLine($"[RX] {line}");
+                if (rtbDebug != null)
+                {
+                    if (InvokeRequired)
+                        BeginInvoke(() => { rtbDebug.AppendText(line + "\n"); rtbDebug.ScrollToCaret(); });
+                    else { rtbDebug.AppendText(line + "\n"); rtbDebug.ScrollToCaret(); }
+                }
             }
 
             return resp;
@@ -322,15 +375,24 @@ namespace USB_HUB_Meter_Host
         //  INA226 数据读取与图表更新
         // ================================================================
 
-        void DoReadOnce(object? s, EventArgs e) => ReadINA226();
+        void DoReadOnce(object? s, EventArgs e) => _ = ReadINA226Async();
 
-        void ReadINA226()
+        async void Timer_Tick(object? s, EventArgs e)
         {
-            if (!_connected) return;
+            if (_readingBusy) return;  // 防止重入
+            await ReadINA226Async();
+        }
+
+        async Task ReadINA226Async()
+        {
+            if (!_connected || _readingBusy) return;
+            _readingBusy = true;
 
             try
             {
-                byte[]? r = SendCmd(_proto.Cmd.GetData, null, 500);
+                // 在后台线程执行串口通信，避免阻塞UI
+                byte[]? r = await Task.Run(() => SendCmd(_proto.Cmd.GetData, null, 2000));
+
                 if (r == null || r.Length < 10)
                 {
                     lblVoltage.Text = "读取失败";
@@ -372,6 +434,10 @@ namespace USB_HUB_Meter_Host
             catch (Exception ex)
             {
                 lblVoltage.Text = $"异常: {ex.Message}";
+            }
+            finally
+            {
+                _readingBusy = false;
             }
         }
 
@@ -429,8 +495,6 @@ namespace USB_HUB_Meter_Host
             formsPlot.Refresh();
         }
 
-        void Timer_Tick(object? s, EventArgs e) => ReadINA226();
-
         // ================================================================
         //  串口终端 (统一显示)
         // ================================================================
@@ -444,6 +508,11 @@ namespace USB_HUB_Meter_Host
         /// 统一终端显示方法
         /// </summary>
         void AppendTerminal(RxTxType type, byte[] data, string? cmdName = null)
+        {
+            AppendTerminalInternal(type, data, cmdName, fromInvoke: false);
+        }
+
+        void AppendTerminalInternal(RxTxType type, byte[] data, string? cmdName, bool fromInvoke)
         {
             if (chkLogEnable == null || !chkLogEnable.Checked) return;
 
@@ -461,30 +530,44 @@ namespace USB_HUB_Meter_Host
                 ? Color.FromArgb(46, 204, 113)    // 绿色
                 : Color.FromArgb(100, 149, 237);  // 蓝色
 
-            // 写入日志文件
-            _logFile.WriteLine($"[{label}] {line}");
-
             // 更新UI (线程安全)
-            if (InvokeRequired)
+            if (!fromInvoke && InvokeRequired)
             {
-                BeginInvoke(() => AppendTerminal(type, data, cmdName));
+                // 非UI线程: 先写日志文件(只写一次), 再委托到UI线程更新控件
+                _logFile.WriteLine($"[{label}] {line}");
+                BeginInvoke(() => AppendTerminalInternal(type, data, cmdName, fromInvoke: true));
                 return;
             }
 
-            rtbDebug.SelectionStart = rtbDebug.TextLength;
-            rtbDebug.SelectionLength = 0;
-            rtbDebug.SelectionColor = color;
-            rtbDebug.AppendText(line + "\n");
-            rtbDebug.SelectionColor = Theme.TextDim;
-            rtbDebug.ScrollToCaret();
+            // UI线程: 如果是递归调用进来的, 日志已在上一步写过, 不再重复写
+            if (!fromInvoke)
+                _logFile.WriteLine($"[{label}] {line}");
+
+            try
+            {
+                rtbDebug.SelectionStart = rtbDebug.TextLength;
+                rtbDebug.SelectionLength = 0;
+                rtbDebug.SelectionColor = color;
+                rtbDebug.AppendText(line + "\n");
+                rtbDebug.SelectionColor = Theme.TextDim;
+                rtbDebug.ScrollToCaret();
+            }
+            catch { /* 忽略UI更新异常，防止触发系统蜂鸣 */ }
 
             // 限制行数，避免内存膨胀
-            if (rtbDebug.Lines.Length > _config.Debug.MaxLines)
+            try
             {
-                rtbDebug.SelectionStart = 0;
-                rtbDebug.SelectionLength = rtbDebug.GetFirstCharIndexFromLine(100);
-                rtbDebug.SelectedText = "";
+                if (rtbDebug.Lines.Length > _config.Debug.MaxLines)
+                {
+                    int cutIdx = rtbDebug.GetFirstCharIndexFromLine(100);
+                    if (cutIdx > 0)
+                    {
+                        rtbDebug.Select(0, cutIdx);
+                        rtbDebug.SelectedText = "";
+                    }
+                }
             }
+            catch { /* 忽略裁剪异常 */ }
         }
 
         // ================================================================
@@ -532,19 +615,36 @@ namespace USB_HUB_Meter_Host
         {
             var ct = (CancellationToken)state!;
 
-            while (!ct.IsCancellationRequested && _connected && _port?.IsOpen == true)
+            while (!ct.IsCancellationRequested && _connected)
             {
                 try
                 {
-                    if (_port.BytesToRead > 0)
+                    byte b = 0;
+                    bool gotByte = false;
+
+                    lock (_portLock)
                     {
-                        byte b = (byte)_port.ReadByte();
+                        if (_port == null || !_port.IsOpen) break;
+                        try
+                        {
+                            if (_port.BytesToRead > 0)
+                            {
+                                b = (byte)_port.ReadByte();
+                                gotByte = true;
+                            }
+                        }
+                        catch (TimeoutException) { }
+                        catch (InvalidOperationException) { break; }
+                        catch (IOException) { break; }
+                    }
+
+                    if (gotByte)
+                    {
                         _lastRxTime = DateTime.Now;
                         ProcessReceivedByte(b);
                     }
                     else
                     {
-                        // 检查缓冲区中的残留数据 (超时100ms，给 bootloader 响应足够时间)
                         if (_rxBufferCount > 0 && (DateTime.Now - _lastRxTime).TotalMilliseconds > 100)
                         {
                             FlushRxBuffer();
@@ -656,7 +756,7 @@ namespace USB_HUB_Meter_Host
         /// <summary>
         /// 等待命令响应 (用于SendCmd)
         /// </summary>
-        byte[]? WaitForResponse(int timeoutMs)
+        byte[]? WaitForResponse(int timeoutMs, int expectedSeq)
         {
             _responseReceived.Reset();
             _rxBufferCount = 0;
@@ -665,6 +765,10 @@ namespace USB_HUB_Meter_Host
             bool gotResponse = _responseReceived.Wait(timeoutMs);
 
             _waitingForCommandResponse = false;
+
+            // 检查是否已被新的命令覆盖
+            if (Volatile.Read(ref _cmdSequence) != expectedSeq)
+                return null;
 
             if (gotResponse && _lastRawFrame != null)
             {
@@ -718,8 +822,18 @@ namespace USB_HUB_Meter_Host
                 byte[] data = Convert.FromHexString(input);
                 AppendTerminal(RxTxType.Tx, data, $"CMD{idx + 1}");
 
-                _port.DiscardInBuffer();
-                _port.Write(data, 0, data.Length);
+                lock (_portLock)
+                {
+                    if (_port == null || !_port.IsOpen) return;
+                    try
+                    {
+                        _port.DiscardInBuffer();
+                        _port.Write(data, 0, data.Length);
+                    }
+                    catch (TimeoutException) { }
+                    catch (InvalidOperationException) { }
+                    catch (IOException) { }
+                }
             }
             catch (Exception ex)
             {
@@ -780,13 +894,25 @@ namespace USB_HUB_Meter_Host
         {
             if (!_connected) return;
 
-            _ledOn = !_ledOn;
-            byte[]? r = SendCmd(_proto.Cmd.SetLed, new byte[] { (byte)(_ledOn ? 1 : 0) });
-            if (r != null && r.Length >= 1)
-                _ledOn = r[0] != 0;
+            btnLED.Enabled = false;
+            bool newState = !_ledOn;
 
-            btnLED.Text = _ledOn ? "LED ●" : "LED ○";
-            btnLED.ForeColor = _ledOn ? Theme.Connected : Theme.TextMain;
+            var t = new Thread(() =>
+            {
+                byte[]? r = SendCmd(_proto.Cmd.SetLed, new byte[] { (byte)(newState ? 1 : 0) }, 2000);
+                BeginInvoke(() =>
+                {
+                    if (r != null && r.Length >= 2)
+                        _ledOn = r[1] != 0;
+                    else
+                        _ledOn = newState;
+
+                    btnLED.Text = _ledOn ? "LED ●" : "LED ○";
+                    btnLED.ForeColor = _ledOn ? Theme.Connected : Theme.TextMain;
+                    btnLED.Enabled = true;
+                });
+            }) { IsBackground = true };
+            t.Start();
         }
 
         void DoResetHUB(object? s, EventArgs e)
@@ -798,17 +924,97 @@ namespace USB_HUB_Meter_Host
 
             var t = new Thread(() =>
             {
-                SendCmd(_proto.Cmd.ResetHub, null, 2000);
+                byte[]? r = SendCmd(_proto.Cmd.ResetHub, null, 2000);
                 BeginInvoke(() =>
                 {
                     btnReset.Enabled = true;
                     btnReset.Text = "复位HUB";
-                    MessageBox.Show("CH634X HUB 已复位", "完成",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    if (r != null)
+                        ShowFadeToast(btnReset, "HUB 已复位", Theme.Connected, 90, 28);
+                    else
+                        ShowFadeToast(btnReset, "复位超时", Theme.Error, 90, 28);
                 });
             }) { IsBackground = true };
             t.Start();
         }
+
+        // ================================================================
+        //  Fade Toast 通知
+        // ================================================================
+
+        void ShowFadeToast(Control anchor, string text, Color color, int offsetX = 0, int offsetY = 0)
+        {
+            if (InvokeRequired)
+            {
+                BeginInvoke(() => ShowFadeToast(anchor, text, color, offsetX, offsetY));
+                return;
+            }
+
+            var toast = new Label
+            {
+                Text = text,
+                AutoSize = true,
+                Font = Theme.FontSmall,
+                ForeColor = color,
+                BackColor = Color.FromArgb(200, Theme.BgPanel),
+                Padding = new Padding(6, 2, 6, 2),
+                TextAlign = ContentAlignment.MiddleCenter,
+                BorderStyle = BorderStyle.FixedSingle,
+            };
+            toast.Size = toast.PreferredSize;
+
+            Controls.Add(toast);
+            toast.BringToFront();
+
+            // 定位到锚定控件右侧
+            toast.Location = new Point(anchor.Right + offsetX, anchor.Top + offsetY);
+
+            toast.Region = System.Drawing.Region.FromHrgn(
+                CreateRoundRectRgn(0, 0, toast.Width, toast.Height, 8, 8));
+
+            int fadeStep = 0;
+            var timer = new System.Windows.Forms.Timer { Interval = 50 };
+            timer.Tick += (_, _) =>
+            {
+                fadeStep++;
+                if (fadeStep < 30) return; // 显示1.5秒
+
+                double opacity = 1.0 - (fadeStep - 30) / 10.0;
+                if (opacity <= 0)
+                {
+                    timer.Stop();
+                    timer.Dispose();
+                    Controls.Remove(toast);
+                    toast.Dispose();
+                }
+                else
+                {
+                    toast.BackColor = Color.FromArgb((int)(200 * opacity), Theme.BgPanel.R, Theme.BgPanel.G, Theme.BgPanel.B);
+                    toast.ForeColor = Color.FromArgb((int)(255 * opacity), color.R, color.G, color.B);
+                }
+            };
+            timer.Start();
+        }
+
+        [DllImport("gdi32.dll")]
+        static extern IntPtr CreateRoundRectRgn(int nLeftRect, int nTopRect, int nRightRect, int nBottomRect, int nWidthEllipse, int nHeightEllipse);
+
+        // Win32: 禁用串口调制解调器状态变化通知 (防止驱动触发蜂鸣)
+        [DllImport("kernel32.dll")]
+        static extern bool SetCommMask(IntPtr hFile, uint dwEvtMask);
+
+        [DllImport("kernel32.dll")]
+        static extern bool GetCommMask(IntPtr hFile, out uint lpEvtMask);
+
+        const uint EV_BREAK = 0x0040;
+        const uint EV_CTS = 0x0008;
+        const uint EV_DSR = 0x0010;
+        const uint EV_ERR = 0x0080;
+        const uint EV_RING = 0x0100;
+        const uint EV_RLSD = 0x0020;
+        const uint EV_RXCHAR = 0x0001;
+        const uint EV_RXFLAG = 0x0002;
+        const uint EV_TXEMPTY = 0x0004;
 
         // ================================================================
         //  自动刷新控制
@@ -1015,7 +1221,10 @@ namespace USB_HUB_Meter_Host
         {
             StopSerialMonitor();
             _timer?.Stop();
-            if (_port?.IsOpen == true) _port.Close();
+            lock (_portLock)
+            {
+                if (_port?.IsOpen == true) _port.Close();
+            }
 
             // 保存窗口位置到配置
             _config.Window.Width = ClientSize.Width;
@@ -1035,6 +1244,30 @@ namespace USB_HUB_Meter_Host
             _logFile.Close();
 
             base.OnFormClosing(e);
+        }
+
+        // 拦截可能触发蜂鸣的消息
+        protected override void WndProc(ref Message m)
+        {
+            const int WM_QUERYBEEP = 0x0031;
+            const int WM_MOUSEACTIVATE = 0x0021;
+            const int MA_NOACTIVATE = 0x0003;
+
+            // 抑制系统蜂鸣
+            if (m.Msg == WM_QUERYBEEP)
+            {
+                m.Result = (IntPtr)0;
+                return;
+            }
+
+            // 防止鼠标点击触发窗口激活（可能伴随蜂鸣）
+            if (m.Msg == WM_MOUSEACTIVATE)
+            {
+                m.Result = (IntPtr)MA_NOACTIVATE;
+                return;
+            }
+
+            base.WndProc(ref m);
         }
     }
 }

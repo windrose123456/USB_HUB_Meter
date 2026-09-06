@@ -1,4 +1,5 @@
 #include "procotol.h"
+#include "INA226.h"
 #include "STC8G_H_Delay.h"
 #include "STC8G_H_UART.h"
 
@@ -108,21 +109,26 @@ void process_cmd(unsigned char cmd,
     switch (cmd) {
 
     case CMD_GET_DATA: {
-        /* INA226 暂未接入, 返回占位数据 0xFF */
-        unsigned char i;
-        for (i = 0; i < 10; i++) resp[i] = 0xFF;
+        INA226_ReadAll(resp);
         send_resp(cmd, STS_OK, resp, 10);
         break;
     }
 
     case CMD_SET_LED: {
-        /* LED 控制暂未接入 */
-        send_resp(cmd, STS_ERR, 0, 0);
+        if (len >= 1) {
+            P55 = buf[0] ? 1 : 0;
+            resp[0] = P55;
+            send_resp(cmd, STS_OK, resp, 1);
+        } else {
+            send_resp(cmd, STS_ERR, 0, 0);
+        }
         break;
     }
 
     case CMD_RESET_HUB: {
-        /* HUB 复位暂未接入 */
+        P54 = 0;
+        delay_ms(100);
+        P54 = 1;
         send_resp(cmd, STS_OK, 0, 0);
         break;
     }
@@ -143,50 +149,7 @@ void process_cmd(unsigned char cmd,
     }
 
     case CMD_ENTER_IAP: {
-        /* 调试: 直接发送字符确认进入 */
-        //TX1_write2buff('I'); TX1_write2buff('A'); TX1_write2buff('P'); TX1_write2buff('\r'); TX1_write2buff('\n');
-        send_resp(cmd, STS_OK, 0, 0);
-        delay_ms(50);
-
-        /* 擦除标志页 */
-        //TX1_write2buff('E'); TX1_write2buff('\r'); TX1_write2buff('\n');
-		IAP_CONTR = 0x80;
-		IAP_CMD = IAP_ERASE;
-		IAP_ADDRH = (unsigned char)(FLAG_ADDR >> 8);
-		IAP_ADDRL = (unsigned char)(FLAG_ADDR & 0xFF);
-		IAP_TRIG = 0x5A; IAP_TRIG = 0xA5;
-		_nop_(); _nop_();
-		delay_ms(20);
-
-        /* 写入标志 */
-        //TX1_write2buff('W'); TX1_write2buff('\r'); TX1_write2buff('\n');
-		IAP_CMD = IAP_WRITE;
-		IAP_DATA = IAP_FLAG;
-		IAP_TRIG = 0x5A; IAP_TRIG = 0xA5;
-		_nop_(); _nop_();
-		delay_ms(20);
-
-        /* 读取验证 */
-        IAP_CMD = IAP_READ;
-        IAP_ADDRH = (unsigned char)(FLAG_ADDR >> 8);
-        IAP_ADDRL = (unsigned char)(FLAG_ADDR & 0xFF);
-        IAP_TRIG = 0x5A; IAP_TRIG = 0xA5;
-        _nop_(); _nop_();
-        {
-            unsigned char verify = IAP_DATA;
-//            TX1_write2buff('V'); TX1_write2buff(':');
-//            TX1_write2buff('0' + (verify >> 4));
-//            TX1_write2buff('0' + (verify & 0x0F));
-//            TX1_write2buff('\r'); TX1_write2buff('\n');
-        }
-
-		IAP_CONTR = 0; IAP_CMD = 0;
-		delay_ms(10);
-
-        /* 关中断 + 直接跳转到 Bootloader (0x1C00) */
-        //TX1_write2buff('J'); TX1_write2buff('\r'); TX1_write2buff('\n');
-		EA = 0;
-		((void (code *)())0x1C00)();
+		IAP_CONTR = 0x60; // 复位到系统bootloader
         break;
     }
 

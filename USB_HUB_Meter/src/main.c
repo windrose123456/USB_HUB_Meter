@@ -11,6 +11,7 @@
 #include	"STC8G_H_NVIC.h"
 #include	"STC8G_H_Switch.h"
 #include	"procotol.h"
+#include	"INA226.h"
 
 /*************  ���ڳ�������	**************/
 volatile u16 uart_rx_timeout_cnt = 0;
@@ -29,9 +30,9 @@ void	GPIO_config(void)
 	GPIO_Inilize(GPIO_P5,&GPIO_InitStructure);
 
 	GPIO_InitStructure.Pin  = GPIO_Pin_4;
-	GPIO_InitStructure.Mode = GPIO_HighZ;
+	GPIO_InitStructure.Mode = GPIO_OUT_PP;
 	GPIO_Inilize(GPIO_P5,&GPIO_InitStructure);
-	delay_ms(10);
+	P54 = 1;            /* HUB RESET# idle high */
 }
 
 /***************  ���ڳ�ʼ������ *****************/
@@ -140,15 +141,16 @@ void main(void)
 	EAXSFR();
 
 	GPIO_config();
+	I2C_config();
 	TIMER_Config();
-	
-	Boot_UART_config();
+
+	//Boot_UART_config();
 	UART_config();
-	
+
 	//dump_regs();
-	
+
 	EA = 1;          // 恢复中断
-	
+
     delay_ms(100);
 	printf("STC8G1K08 UART1 Test Programme!\r\n");
 	delay_ms(1000);
@@ -157,6 +159,8 @@ void main(void)
 	printf("------------\n");
 
 	NVIC_Timer0_Init(ENABLE, Priority_2);
+
+	INA226_Init();
 
 	P55 = 1;
 

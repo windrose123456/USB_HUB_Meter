@@ -68,7 +68,7 @@ class SerialConfig
     public int DataBits { get; set; } = 8;
     public string Parity { get; set; } = "None";
     public string StopBits { get; set; } = "One";
-    public int ReadTimeout { get; set; } = 1000;
+    public int ReadTimeout { get; set; } = 100;
     public int WriteTimeout { get; set; } = 1000;
 
     /// <summary>
