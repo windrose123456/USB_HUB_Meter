@@ -930,9 +930,9 @@ namespace USB_HUB_Meter_Host
                     btnReset.Enabled = true;
                     btnReset.Text = "复位HUB";
                     if (r != null)
-                        ShowFadeToast(btnReset, "HUB 已复位", Theme.Connected, 90, 28);
+                        ShowFadeToast(btnReset, "HUB 已复位", Theme.Connected, 15, 3);
                     else
-                        ShowFadeToast(btnReset, "复位超时", Theme.Error, 90, 28);
+                        ShowFadeToast(btnReset, "复位超时", Theme.Error, 15, 3);
                 });
             }) { IsBackground = true };
             t.Start();
