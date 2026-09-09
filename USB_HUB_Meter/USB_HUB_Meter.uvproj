@@ -426,6 +426,16 @@
               <FileType>1</FileType>
               <FilePath>.\src\procotol.c</FilePath>
             </File>
+            <File>
+              <FileName>STC8G_H_I2C.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\STC8G_H_I2C.c</FilePath>
+            </File>
+            <File>
+              <FileName>STC8G_H_I2C_Isr.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\STC8G_H_I2C_Isr.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -485,6 +495,11 @@
               <FileName>procotol.h</FileName>
               <FileType>5</FileType>
               <FilePath>.\inc\procotol.h</FilePath>
+            </File>
+            <File>
+              <FileName>STC8G_H_I2C.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\inc\STC8G_H_I2C.h</FilePath>
             </File>
           </Files>
         </Group>

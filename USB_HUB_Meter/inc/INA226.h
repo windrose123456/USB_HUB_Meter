@@ -14,7 +14,6 @@
 #define REG_MFR     0xFE    /* Manufacturer ID */
 
 /* ---- 函数声明 ---- */
-void I2C_config(void);
 void INA226_Init(void);
 u16  INA226_ReadReg(u8 reg);
 void INA226_WriteReg(u8 reg, u16 val);

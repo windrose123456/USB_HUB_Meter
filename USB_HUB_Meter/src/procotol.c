@@ -99,6 +99,8 @@ void process_cmd(unsigned char cmd,
                  unsigned char *buf, unsigned char len)
 {
     unsigned char resp[10];
+	unsigned char test_resp[10];
+	u16 raw = 0;
 
     /* 调试: 输出收到的命令码 */
 //    TX1_write2buff('C'); TX1_write2buff(':');
@@ -111,6 +113,13 @@ void process_cmd(unsigned char cmd,
     case CMD_GET_DATA: {
         INA226_ReadAll(resp);
         send_resp(cmd, STS_OK, resp, 10);
+		
+		raw = INA226_ReadReg(0xFE);
+		test_resp[0] = (u8)(raw >> 8); test_resp[1] = (u8)raw;
+		raw = INA226_ReadReg(0xFF);
+		test_resp[2] = (u8)(raw >> 8); test_resp[3] = (u8)raw;
+		send_resp(cmd, STS_OK, test_resp, 4);
+		
         break;
     }
 
