@@ -63,9 +63,8 @@
 #define	UART4_SW_P02_P03	0
 #define	UART4_SW_P52_P53	1
 
-#define	I2C_P14_P15				0
-#define	I2C_P24_P25				1
-#define	I2C_P33_P32				3
+#define	I2C_P33_P32				0
+#define	I2C_P54_P55				1
 
 #define	CMP_OUT_P34				0
 #define	CMP_OUT_P41				1

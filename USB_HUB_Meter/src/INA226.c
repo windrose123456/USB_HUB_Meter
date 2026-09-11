@@ -38,18 +38,18 @@ u16 INA226_ReadReg(u8 reg)
 void INA226_Init(void)
 {
 	u16 id = INA226_ReadReg(REG_MFR);
+	printf("INA226 ID = 0x%x\n", id);
 	if (id != 0x5449) {
 		printf("INA226 init fail!\r\n");
 		return;  // 未检测到 INA226
 	}
 
-	// 配置: 1次平均, 1.1ms转换时间, 连续测量模式
-	INA226_WriteReg(REG_CFG, 0x0247);
+	// 配置: 4次平均, 1.1ms转换时间, 连续测量模式
+	// 转换+IIC读取时间：1.1 * 4 + 1.1 * 4 + 2，大约10ms可以读取一次
+	INA226_WriteReg(REG_CFG, 0x0327);
 
-	// 校准: Rshunt=10mΩ, MaxI=3.2A → Cal = trunc(0.00512 / (Current_LSB × Rshunt))
-	// Current_LSB = 3.2A / 32768 ≈ 0.0001A
-	// Cal = trunc(0.00512 / (0.0001 × 0.01)) = 5120 = 0x1400
-	INA226_WriteReg(REG_CAL, 0x1400);
+	// 
+	INA226_WriteReg(REG_CAL, 0x0800);
 }
 
 /* ================================================================
@@ -61,16 +61,16 @@ void INA226_ReadAll(u8 *buf)
 {
 	u16 raw;
 
-	raw = INA226_ReadReg(REG_BV);
+	raw = INA226_ReadReg(REG_SV);
 	buf[0] = (u8)(raw >> 8); buf[1] = (u8)raw;
 
-	raw = INA226_ReadReg(REG_SV);
+	raw = INA226_ReadReg(REG_BV);
 	buf[2] = (u8)(raw >> 8); buf[3] = (u8)raw;
 
-	raw = INA226_ReadReg(REG_CUR);
+	raw = INA226_ReadReg(REG_PWR);
 	buf[4] = (u8)(raw >> 8); buf[5] = (u8)raw;
 
-	raw = INA226_ReadReg(REG_PWR);
+	raw = INA226_ReadReg(REG_CUR);
 	buf[6] = (u8)(raw >> 8); buf[7] = (u8)raw;
 
 	raw = INA226_ReadReg(REG_MFR);

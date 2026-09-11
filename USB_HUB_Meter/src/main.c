@@ -128,21 +128,21 @@ void TIMER_Config(void)
 /****************  I2C初始化函数 *****************/
 void	I2C_config(void)
 {
-//	GPIO_InitTypeDef	GPIO_InitStructure;
-//	I2C_InitTypeDef		I2C_InitStructure;
+	GPIO_InitTypeDef	GPIO_InitStructure;
+	I2C_InitTypeDef		I2C_InitStructure;
 
-//	GPIO_InitStructure.Pin  = GPIO_Pin_2 | GPIO_Pin_3;
-//	GPIO_InitStructure.Mode = GPIO_PullUp;
-//	GPIO_Inilize(GPIO_P3,&GPIO_InitStructure);
+	GPIO_InitStructure.Pin  = GPIO_Pin_2 | GPIO_Pin_3;
+	GPIO_InitStructure.Mode = GPIO_PullUp;
+	GPIO_Inilize(GPIO_P3,&GPIO_InitStructure);
 
-//	I2C_InitStructure.I2C_Mode      = I2C_Mode_Master;	//主从选择   I2C_Mode_Master, I2C_Mode_Slave
-//	I2C_InitStructure.I2C_Enable    = ENABLE;			//I2C功能使能,   ENABLE, DISABLE
-//	I2C_InitStructure.I2C_MS_WDTA   = DISABLE;			//主机使能自动发送,  ENABLE, DISABLE
-//	I2C_InitStructure.I2C_Speed     = 16;				//总线速度=Fosc/2/(Speed*2+4),      0~63
-//	I2C_Init(&I2C_InitStructure);
-//	NVIC_I2C_Init(I2C_Mode_Master,DISABLE,Priority_0);	//主从模式, I2C_Mode_Master, I2C_Mode_Slave; 中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,Priority_2,Priority_3
+	I2C_InitStructure.I2C_Mode      = I2C_Mode_Master;	//主从选择   I2C_Mode_Master, I2C_Mode_Slave
+	I2C_InitStructure.I2C_Enable    = ENABLE;			//I2C功能使能,   ENABLE, DISABLE
+	I2C_InitStructure.I2C_MS_WDTA   = DISABLE;			//主机使能自动发送,  ENABLE, DISABLE
+	I2C_InitStructure.I2C_Speed     = 16;				//总线速度=Fosc/2/(Speed*2+4),      0~63
+	I2C_Init(&I2C_InitStructure);
+	NVIC_I2C_Init(I2C_Mode_Master,DISABLE,Priority_0);	//主从模式, I2C_Mode_Master, I2C_Mode_Slave; 中断使能, ENABLE/DISABLE; 优先级(低到高) Priority_0,Priority_1,Priority_2,Priority_3
 
-//	I2C_SW(I2C_P33_P32);					//I2C_P14_P15,I2C_P24_P25,I2C_P33_P32
+	I2C_SW(I2C_P33_P32);					//I2C_P14_P15,I2C_P24_P25,I2C_P33_P32
 }
 
 //========================================================================
@@ -177,9 +177,9 @@ void main(void)
 
 	NVIC_Timer0_Init(ENABLE, Priority_2);
 
-	//INA226_Init();
+	INA226_Init();
 
-	P55 = 1;
+	P55 = 0;
 
 	while (1)
 	{

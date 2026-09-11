@@ -114,11 +114,11 @@ void process_cmd(unsigned char cmd,
         INA226_ReadAll(resp);
         send_resp(cmd, STS_OK, resp, 10);
 		
-		raw = INA226_ReadReg(0xFE);
-		test_resp[0] = (u8)(raw >> 8); test_resp[1] = (u8)raw;
-		raw = INA226_ReadReg(0xFF);
-		test_resp[2] = (u8)(raw >> 8); test_resp[3] = (u8)raw;
-		send_resp(cmd, STS_OK, test_resp, 4);
+//		raw = INA226_ReadReg(0xFE);
+//		test_resp[0] = (u8)(raw >> 8); test_resp[1] = (u8)raw;
+//		raw = INA226_ReadReg(0xFF);
+//		test_resp[2] = (u8)(raw >> 8); test_resp[3] = (u8)raw;
+//		send_resp(cmd, STS_OK, test_resp, 4);
 		
         break;
     }
