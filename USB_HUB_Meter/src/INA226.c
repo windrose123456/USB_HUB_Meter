@@ -73,6 +73,6 @@ void INA226_ReadAll(u8 *buf)
 	raw = INA226_ReadReg(REG_CUR);
 	buf[6] = (u8)(raw >> 8); buf[7] = (u8)raw;
 
-	raw = INA226_ReadReg(REG_MFR);
-	buf[8] = (u8)(raw >> 8); buf[9] = (u8)raw;
+//	raw = INA226_ReadReg(REG_MFR);
+//	buf[8] = (u8)(raw >> 8); buf[9] = (u8)raw;
 }

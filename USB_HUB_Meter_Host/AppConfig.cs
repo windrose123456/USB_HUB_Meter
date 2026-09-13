@@ -96,11 +96,11 @@ class SerialConfig
 
 class Ina226Config
 {
-    /// <summary>电流 LSB, A/bit (Rshunt=10mΩ, MaxI=3.2A → 0.0001)</summary>
-    public double CurrentLSB { get; set; } = 0.0001;
+    /// <summary>电流 LSB, A/bit (Rshunt=50mΩ, CAL=2048 → 0.00005)</summary>
+    public double CurrentLSB { get; set; } = 0.00005;
 
     /// <summary>采样电阻, Ω</summary>
-    public double RShunt { get; set; } = 0.01;
+    public double RShunt { get; set; } = 0.05;
 
     /// <summary>总线电压 LSB, mV/bit</summary>
     public double VoltageLSB { get; set; } = 1.25;

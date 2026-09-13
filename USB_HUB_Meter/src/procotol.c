@@ -98,8 +98,8 @@ void send_resp(unsigned char cmd, unsigned char sts,
 void process_cmd(unsigned char cmd,
                  unsigned char *buf, unsigned char len)
 {
-    unsigned char resp[10];
-	unsigned char test_resp[10];
+    unsigned char resp[8];
+//	unsigned char test_resp[10];
 	u16 raw = 0;
 
     /* 调试: 输出收到的命令码 */
@@ -112,7 +112,7 @@ void process_cmd(unsigned char cmd,
 
     case CMD_GET_DATA: {
         INA226_ReadAll(resp);
-        send_resp(cmd, STS_OK, resp, 10);
+        send_resp(cmd, STS_OK, resp, 8);
 		
 //		raw = INA226_ReadReg(0xFE);
 //		test_resp[0] = (u8)(raw >> 8); test_resp[1] = (u8)raw;

@@ -33,15 +33,14 @@ namespace USB_HUB_Meter_Host
         DateTime _lastRxTime;  // 最后收到字节的时间，用于超时检测
 
         // ===== INA226 数据缓冲 =====
-        readonly List<double> _voltageData = new();
-        readonly List<double> _currentData = new();
-        readonly List<double> _powerData = new();
+        readonly List<double> _currentData = new();  // mA
+        readonly List<double> _powerData = new();    // mW
         readonly List<double> _timeData = new();   // X轴: 从0开始的秒数
         DateTime _startTime;
         int _maxPoints;
 
         // ===== 图表信号线 =====
-        ScottPlot.Plottable.ScatterPlot? _signalV, _signalA, _signalW;
+        ScottPlot.Plottable.ScatterPlot? _signalA, _signalW;
 
         // ===== 定时器 =====
         System.Windows.Forms.Timer? _timer;
@@ -125,24 +124,25 @@ namespace USB_HUB_Meter_Host
             plot.YAxis.TickLabelStyle(fontSize: 8);
             plot.YAxis2.TickLabelStyle(fontSize: 8);
 
+            // 右侧留出足够边距给功率标度
+            plot.Layout(right: 60);
+
             // 标题和标签
             plot.Title("INA226 实时数据", size: 12);
             plot.XAxis.Label("时间 (s)");
-            plot.YAxis.Label("电压(V) / 电流(A)");
-            plot.YAxis2.Label("功率(W)");
+            plot.YAxis.Label("电流 (mA)");
+            plot.YAxis2.Label("功率 (mW)");
 
             // 初始化空数据
             double[] emptyX = { 0 };
             double[] emptyY = { 0 };
-            _signalV = plot.AddScatter(emptyX, emptyY, color: Theme.VoltageColor);
-            _signalV.Label = "电压(V)";
 
             _signalA = plot.AddScatter(emptyX, emptyY, color: Theme.CurrentColor);
-            _signalA.Label = "电流(A)";
+            _signalA.Label = "电流(mA)";
 
             _signalW = plot.AddScatter(emptyX, emptyY, color: Theme.PowerColor);
             _signalW.YAxisIndex = 1;
-            _signalW.Label = "功率(W)";
+            _signalW.Label = "功率(mW)";
 
             plot.Legend(true);
 
@@ -309,7 +309,6 @@ namespace USB_HUB_Meter_Host
                 chkAuto.Checked = false;
                 // 清空图表数据，下次连接从0开始
                 _timeData.Clear();
-                _voltageData.Clear();
                 _currentData.Clear();
                 _powerData.Clear();
             }
@@ -393,7 +392,8 @@ namespace USB_HUB_Meter_Host
                 // 在后台线程执行串口通信，避免阻塞UI
                 byte[]? r = await Task.Run(() => SendCmd(_proto.Cmd.GetData, null, 2000));
 
-                if (r == null || r.Length < 10)
+                // r = [STS_OK][8字节INA226数据]，去掉状态字节
+                if (r == null || r.Length < 9)
                 {
                     lblVoltage.Text = "读取失败";
                     lblCurrent.Text = "— A";
@@ -401,7 +401,16 @@ namespace USB_HUB_Meter_Host
                     return;
                 }
 
-                var data = Ina226Data.Parse(r);
+                var data = Ina226Data.Parse(r.AsSpan(1).ToArray());
+
+                if (!data.CalibrationValid)
+                {
+                    lblVoltage.Text = "读取失败";
+                    lblCurrent.Text = "— A";
+                    lblPower.Text = "— W";
+                    return;
+                }
+
                 var inaCfg = _config.Ina226;
 
                 // 更新实时数值
@@ -409,21 +418,19 @@ namespace USB_HUB_Meter_Host
                 lblCurrent.Text = $"{data.GetCurrent(inaCfg):F4} A";
                 lblPower.Text = $"{data.GetPower(inaCfg):F4} W";
 
-                // 追加到图表数据
+                // 追加到图表数据 (mA, mW)
                 if (_timeData.Count == 0)
                     _startTime = DateTime.Now;
 
                 double elapsed = (DateTime.Now - _startTime).TotalSeconds;
                 _timeData.Add(elapsed);
-                _voltageData.Add(data.GetBusVoltage(inaCfg));
-                _currentData.Add(data.GetCurrent(inaCfg));
-                _powerData.Add(data.GetPower(inaCfg));
+                _currentData.Add(data.GetCurrent(inaCfg) * 1000);  // A → mA
+                _powerData.Add(data.GetPower(inaCfg) * 1000);      // W → mW
 
                 // 裁剪超过最大点数
-                while (_voltageData.Count > _maxPoints)
+                while (_currentData.Count > _maxPoints)
                 {
                     _timeData.RemoveAt(0);
-                    _voltageData.RemoveAt(0);
                     _currentData.RemoveAt(0);
                     _powerData.RemoveAt(0);
                 }
@@ -443,14 +450,24 @@ namespace USB_HUB_Meter_Host
 
         void UpdateChart()
         {
-            if (_signalV == null || _signalA == null || _signalW == null) return;
+            if (_signalA == null || _signalW == null) return;
 
             double[] xs = _timeData.ToArray();
-            _signalV.Update(xs, _voltageData.ToArray());
             _signalA.Update(xs, _currentData.ToArray());
             _signalW.Update(xs, _powerData.ToArray());
 
-            formsPlot.Plot.AxisAuto();
+            // 左轴自动范围 (电流)
+            double aMin = _currentData.Min();
+            double aMax = _currentData.Max();
+            double aPad = Math.Max((aMax - aMin) * 0.1, 0.5);
+            formsPlot.Plot.SetAxisLimits(yMin: aMin - aPad, yMax: aMax + aPad, yAxisIndex: 0);
+
+            // 右轴自动范围 (功率)
+            double wMin = _powerData.Min();
+            double wMax = _powerData.Max();
+            double wPad = Math.Max((wMax - wMin) * 0.1, 1.0);
+            formsPlot.Plot.SetAxisLimits(yMin: wMin - wPad, yMax: wMax + wPad, yAxisIndex: 1);
+
             formsPlot.Refresh();
         }
 

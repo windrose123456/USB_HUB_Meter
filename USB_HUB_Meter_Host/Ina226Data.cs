@@ -11,7 +11,7 @@ struct Ina226Data
     public short  RawShuntVoltage;
     public short  RawCurrent;
     public ushort RawPower;
-    public ushort ManufacturerId;
+    public bool   CalibrationValid;
 
     /// <summary>
     /// 总线电压 (V)
@@ -38,17 +38,31 @@ struct Ina226Data
         => RawPower * cfg.PowerMultiplier * cfg.CurrentLSB;
 
     /// <summary>
-    /// 从 10 字节响应数据解析
+    /// 从 8 字节响应数据解析 (SV, BV, PWR, CUR)
     /// </summary>
     public static Ina226Data Parse(byte[] resp)
     {
-        return new Ina226Data
+        var data = new Ina226Data
         {
-            RawBusVoltage    = (ushort)((resp[0] << 8) | resp[1]),
-            RawShuntVoltage  = (short)((resp[2] << 8) | resp[3]),
-            RawCurrent       = (short)((resp[4] << 8) | resp[5]),
-            RawPower         = (ushort)((resp[6] << 8) | resp[7]),
-            ManufacturerId   = (ushort)((resp[8] << 8) | resp[9]),
+            RawShuntVoltage  = (short)((resp[0] << 8) | resp[1]),
+            RawBusVoltage    = (ushort)((resp[2] << 8) | resp[3]),
+            RawPower         = (ushort)((resp[4] << 8) | resp[5]),
+            RawCurrent       = (short)((resp[6] << 8) | resp[7]),
         };
+        data.ValidateCalibration();
+        return data;
+    }
+
+    /// <summary>
+    /// 验证校准关系: CUR == SV×CAL/2048, PWR == CUR×BV/20000
+    /// </summary>
+    public void ValidateCalibration()
+    {
+        const int CAL = 2048;
+        int expectedCur = (int)RawShuntVoltage * CAL / 2048;
+        int expectedPwr = (int)RawCurrent * RawBusVoltage / 20000;
+        // 功率允许±1容差，因为整数除法截断与四舍五入的差异
+        CalibrationValid = (expectedCur == RawCurrent)
+            && (Math.Abs(expectedPwr - (int)RawPower) <= 1);
     }
 }
